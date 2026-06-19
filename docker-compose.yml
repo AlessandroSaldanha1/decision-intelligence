@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      - CLICKUP_API_TOKEN=${CLICKUP_API_TOKEN}
+      - CLICKUP_WORKSPACE_ID=${CLICKUP_WORKSPACE_ID}
+      - CLICKUP_DEFAULT_LIST_ID=${CLICKUP_DEFAULT_LIST_ID}
+      - APP_ENV=${APP_ENV:-production}
+      - NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME:-Decision Intelligence}
+    restart: unless-stopped
