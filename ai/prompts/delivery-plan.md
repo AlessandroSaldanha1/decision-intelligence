@@ -1,15 +1,18 @@
 # Prompt — Delivery Plan
 
 ## Objetivo
+
 Gerar um plano de entrega estruturado com epic, task principal e subtasks organizadas por frente.
 
 ## Input
+
 - `demand`: texto da demanda
 - `userStory`: User Story gerada
 - `analysis`: análise Claude
 - `organizationalContext`: contexto organizacional
 
 ## Output (JSON)
+
 ```json
 {
   "epic": {
@@ -34,6 +37,7 @@ Gerar um plano de entrega estruturado com epic, task principal e subtasks organi
 ```
 
 ### DeliveryTask
+
 ```json
 {
   "title": "string",
@@ -48,16 +52,20 @@ Gerar um plano de entrega estruturado com epic, task principal e subtasks organi
 ## Critérios de Qualidade
 
 ### Granularidade
+
 - Cada subtask: máximo 8h (1 dia de trabalho)
 - Títulos claros e acionáveis
 
 ### Caminho Crítico
+
 - Ordenado corretamente por dependências
 - 3-7 itens (não pode ser todo o backlog)
 
 ### Frentes
+
 - Incluir apenas frentes com trabalho real
 - Frentes sem subtasks ficam com array vazio (não incluir no output)
 
 ## Implementação
+
 - Implementado em: `/services/claude/delivery-plan.service.ts`

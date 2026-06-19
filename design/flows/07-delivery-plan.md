@@ -1,9 +1,11 @@
 # Fluxo 07 — Plano de Entrega
 
 ## Objetivo
+
 Exibir o plano de entrega estruturado por frente de trabalho, com estimativas e caminho crítico.
 
 ## Rota
+
 `/demand/[id]/delivery-plan`
 
 ## Estrutura do Plano
@@ -17,14 +19,17 @@ Exibir o plano de entrega estruturado por frente de trabalho, com estimativas e 
 ## Estados da Tela
 
 ### Loading
+
 - "Gerando plano de entrega..."
 
 ### Com Plano
+
 - Epic no topo com badge de estimativa
 - Seções colapsáveis por frente
 - Each subtask: título, horas, prioridade
 
 ### Erro
+
 - Retry disponível
 
 ## Estrutura Visual
@@ -38,7 +43,7 @@ Exibir o plano de entrega estruturado por frente de trabalho, com estimativas e 
 [BACKEND]
   [critical] Configurar NextAuth  4h
   [high] Rate limiting             2h
-  
+
 [FRONTEND]
   [critical] Criar tela de login  4h
 
@@ -52,6 +57,7 @@ Exibir o plano de entrega estruturado por frente de trabalho, com estimativas e 
 ```
 
 ## Observações de UX
+
 - Caminho crítico deve ser visualmente destacado (chips conectados)
 - Prioridade por cor: critical=vermelho, high=laranja, medium=amarelo, low=cinza
 - Estimativas em horas devem ser proeminentes

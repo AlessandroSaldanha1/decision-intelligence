@@ -50,15 +50,15 @@ docker compose up --build
 
 ## Variáveis de Ambiente
 
-| Variável | Obrigatório | Descrição |
-|----------|-------------|-----------|
-| ANTHROPIC_API_KEY | Não* | Chave Claude API |
-| ANTHROPIC_MODEL | Não | Padrão: claude-sonnet-4-6 |
-| CLICKUP_API_TOKEN | Não* | Token ClickUp (Settings → Apps → API) |
-| CLICKUP_WORKSPACE_ID | Não | ID do workspace |
-| CLICKUP_DEFAULT_LIST_ID | Não | List padrão para publicação |
+| Variável                | Obrigatório | Descrição                             |
+| ----------------------- | ----------- | ------------------------------------- |
+| ANTHROPIC_API_KEY       | Não\*       | Chave Claude API                      |
+| ANTHROPIC_MODEL         | Não         | Padrão: claude-sonnet-4-6             |
+| CLICKUP_API_TOKEN       | Não\*       | Token ClickUp (Settings → Apps → API) |
+| CLICKUP_WORKSPACE_ID    | Não         | ID do workspace                       |
+| CLICKUP_DEFAULT_LIST_ID | Não         | List padrão para publicação           |
 
-*Se vazio, usa dados mock.
+\*Se vazio, usa dados mock.
 
 ---
 
@@ -92,13 +92,13 @@ docker compose up --build  # Docker
 
 ## Documentação
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| `CLAUDE.md` | Regras para Claude Code |
-| `docs/product-overview.md` | Visão do produto |
-| `docs/architecture.md` | Arquitetura técnica |
-| `docs/business-rules.md` | Regras de negócio |
-| `docs/integrations.md` | Integrações ClickUp e Claude |
-| `docs/rag-strategy.md` | Estratégia de RAG |
-| `design/flows/` | Especificação de cada fluxo |
-| `ai/prompts/` | Prompts do Claude |
+| Arquivo                    | Conteúdo                     |
+| -------------------------- | ---------------------------- |
+| `CLAUDE.md`                | Regras para Claude Code      |
+| `docs/product-overview.md` | Visão do produto             |
+| `docs/architecture.md`     | Arquitetura técnica          |
+| `docs/business-rules.md`   | Regras de negócio            |
+| `docs/integrations.md`     | Integrações ClickUp e Claude |
+| `docs/rag-strategy.md`     | Estratégia de RAG            |
+| `design/flows/`            | Especificação de cada fluxo  |
+| `ai/prompts/`              | Prompts do Claude            |

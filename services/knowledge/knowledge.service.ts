@@ -1,5 +1,10 @@
 import { mockInsights, mockKnowledgeSources, mockSearch } from '@/lib/rag/mock-knowledge'
-import type { KnowledgeInsight, KnowledgeSource, OrganizationalContext, RAGSearchResult } from '@/types/knowledge'
+import type {
+  KnowledgeInsight,
+  KnowledgeSource,
+  OrganizationalContext,
+  RAGSearchResult,
+} from '@/types/knowledge'
 
 export class KnowledgeService {
   async getSources(): Promise<KnowledgeSource[]> {
@@ -21,9 +26,7 @@ export class KnowledgeService {
   async getInsights(tags?: string[]): Promise<KnowledgeInsight[]> {
     if (!tags || tags.length === 0) return mockInsights
 
-    return mockInsights.filter((insight) =>
-      tags.some((tag) => insight.tags.includes(tag))
-    )
+    return mockInsights.filter((insight) => tags.some((tag) => insight.tags.includes(tag)))
   }
 
   async buildOrganizationalContext(demand: string): Promise<OrganizationalContext> {

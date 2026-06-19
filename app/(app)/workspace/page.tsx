@@ -27,10 +27,17 @@ export default function WorkspacePage() {
               {ws.name[0]}
             </div>
             <div className="flex-1">
-              <div className="font-semibold text-white group-hover:text-violet-300 transition-colors">{ws.name}</div>
+              <div className="font-semibold text-white group-hover:text-violet-300 transition-colors">
+                {ws.name}
+              </div>
               <div className="text-sm text-gray-500">{ws.memberCount} membros</div>
             </div>
-            <svg className="h-5 w-5 text-gray-600 group-hover:text-violet-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="h-5 w-5 text-gray-600 group-hover:text-violet-400 transition-colors"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>

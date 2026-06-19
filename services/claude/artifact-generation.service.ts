@@ -24,8 +24,14 @@ const MOCK_ARTIFACTS: ArtifactGenerationOutput = {
     {
       title: 'Login bem-sucedido com Google',
       given: ['o usuário está na tela de login', 'o usuário possui uma conta Google válida'],
-      when: ['o usuário clica no botão "Entrar com Google"', 'o usuário autoriza o acesso na tela do Google'],
-      then: ['o usuário é redirecionado para o dashboard', 'uma sessão é criada com os dados do perfil Google'],
+      when: [
+        'o usuário clica no botão "Entrar com Google"',
+        'o usuário autoriza o acesso na tela do Google',
+      ],
+      then: [
+        'o usuário é redirecionado para o dashboard',
+        'uma sessão é criada com os dados do perfil Google',
+      ],
       tags: ['@auth', '@oauth', '@google', '@happy-path'],
     },
     {
@@ -60,10 +66,7 @@ const MOCK_ARTIFACTS: ArtifactGenerationOutput = {
       title: 'Sessão expirada redireciona para login',
       type: 'functional',
       priority: 'high',
-      steps: [
-        'Acessar uma rota protegida sem sessão ativa',
-        'Verificar redirect para /login',
-      ],
+      steps: ['Acessar uma rota protegida sem sessão ativa', 'Verificar redirect para /login'],
       expectedResult: 'Usuário redirecionado para /login com parâmetro callbackUrl',
     },
     {

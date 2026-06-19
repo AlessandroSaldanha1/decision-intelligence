@@ -2,7 +2,7 @@
 
 Esta é a especificação dos contratos de output esperados do Claude.
 
-**Regra:** Claude deve sempre retornar JSON puro, sem markdown, sem texto adicional, sem ```json```.
+**Regra:** Claude deve sempre retornar JSON puro, sem markdown, sem texto adicional, sem `json`.
 
 ## ClaudeAnalysisOutput
 

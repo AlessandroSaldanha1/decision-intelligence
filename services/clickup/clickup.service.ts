@@ -108,7 +108,11 @@ export class ClickUpService {
     return data
   }
 
-  async createSubtask(parentTaskId: string, listId: string, payload: ClickUpCreateTaskPayload): Promise<ClickUpTask> {
+  async createSubtask(
+    parentTaskId: string,
+    listId: string,
+    payload: ClickUpCreateTaskPayload
+  ): Promise<ClickUpTask> {
     return this.createTask(listId, { ...payload, parent: parentTaskId })
   }
 

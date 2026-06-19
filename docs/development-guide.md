@@ -23,15 +23,15 @@ Acesse `http://localhost:3000`.
 
 ## Variáveis de Ambiente
 
-| Variável | Obrigatório | Descrição |
-|----------|-------------|-----------|
-| ANTHROPIC_API_KEY | Não* | Chave da API Claude |
-| ANTHROPIC_MODEL | Não | Modelo (padrão: claude-sonnet-4-6) |
-| CLICKUP_API_TOKEN | Não* | Token do ClickUp |
-| CLICKUP_WORKSPACE_ID | Não | ID do workspace padrão |
-| CLICKUP_DEFAULT_LIST_ID | Não | List padrão para publicação |
+| Variável                | Obrigatório | Descrição                          |
+| ----------------------- | ----------- | ---------------------------------- |
+| ANTHROPIC_API_KEY       | Não\*       | Chave da API Claude                |
+| ANTHROPIC_MODEL         | Não         | Modelo (padrão: claude-sonnet-4-6) |
+| CLICKUP_API_TOKEN       | Não\*       | Token do ClickUp                   |
+| CLICKUP_WORKSPACE_ID    | Não         | ID do workspace padrão             |
+| CLICKUP_DEFAULT_LIST_ID | Não         | List padrão para publicação        |
 
-*Se vazio, usa dados mock.
+\*Se vazio, usa dados mock.
 
 ## Scripts
 

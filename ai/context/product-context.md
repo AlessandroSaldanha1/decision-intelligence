@@ -25,6 +25,7 @@ Plataforma de Inteligência Organizacional que conecta ao ClickUp de times de pr
 ## Contexto de Uso
 
 Os prompts são executados com contexto organizacional real do time:
+
 - Histórico de tasks similares (com score de similaridade)
 - Decisões técnicas consolidadas
 - Padrões de implementação do time

@@ -1,9 +1,11 @@
 # Fluxo 06 — Artefatos
 
 ## Objetivo
+
 Exibir os artefatos de produto e engenharia gerados pelo Claude.
 
 ## Rota
+
 `/demand/[id]/artifacts`
 
 ## Artefatos Gerados
@@ -17,14 +19,17 @@ Exibir os artefatos de produto e engenharia gerados pelo Claude.
 ## Estados da Tela
 
 ### Loading
+
 - "Gerando artefatos com Claude..."
 - Skeleton por seção de artefato
 
 ### Com Artefatos
+
 - Tabs ou seções para cada artefato
 - Cada artefato com opção de copiar (futuro)
 
 ### Erro
+
 - Erro claro por artefato que falhou
 
 ## Estrutura Visual
@@ -36,7 +41,7 @@ Exibir os artefatos de produto e engenharia gerados pelo Claude.
   Como [persona]
   eu quero [ação]
   para que [benefício]
-  
+
   Critérios de Aceite:
   ✓ Critério 1
   ✓ Critério 2
@@ -48,6 +53,7 @@ Exibir os artefatos de produto e engenharia gerados pelo Claude.
 ```
 
 ## Observações de UX
+
 - User Story é o artefato principal e mais visível
 - DoD deve ser exibida como checklist
 - Artefatos devem ser facilmente copiáveis (botão de cópia)

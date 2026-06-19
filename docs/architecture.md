@@ -62,13 +62,17 @@
 ## Decisões Arquiteturais
 
 ### Server-Side Only para Integrações
+
 Todas as chamadas para ClickUp e Claude são feitas via API routes do Next.js. O token da API nunca é exposto ao frontend.
 
 ### Mock Mode
+
 Se `CLICKUP_API_TOKEN` ou `ANTHROPIC_API_KEY` estiverem vazios, o sistema usa dados mock. Isso permite desenvolvimento e demo sem credenciais reais.
 
 ### Sem State Management Global
+
 O estado das demandas é mantido localmente nas páginas durante o fluxo. Futuro: adicionar Zustand ou React Query para persistência.
 
 ### Sem Vector Database (por enquanto)
+
 A busca RAG atual usa busca textual simples em dados mock. A arquitetura está preparada para adicionar um vector database (pgvector, Pinecone, Qdrant) sem quebrar a interface.

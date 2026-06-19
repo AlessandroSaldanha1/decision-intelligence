@@ -33,24 +33,30 @@ Criar arquivo em `/design/screens/nome-da-tela.md` com:
 # Nome da Tela
 
 ## Objetivo
+
 O que o usuário precisa fazer nesta tela.
 
 ## Entrada do Usuário
+
 Quais ações o usuário pode executar.
 
 ## Saída Esperada
+
 O que acontece após a interação.
 
 ## Estados da Tela
+
 - Loading
 - Vazio
 - Com dados
 - Erro
 
 ## Componentes
+
 Lista de componentes necessários.
 
 ## Navegação
+
 Para onde o usuário vai após as ações.
 
 ## Observações de UX

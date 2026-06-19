@@ -1,14 +1,17 @@
 # Prompt — Artifact Generation
 
 ## Objetivo
+
 Gerar artefatos completos de produto e engenharia a partir da demanda e da análise prévia.
 
 ## Input
+
 - `demand`: texto da demanda
 - `analysis`: output do Claude Analysis
 - `organizationalContext`: contexto organizacional
 
 ## Output (JSON)
+
 ```json
 {
   "userStory": {
@@ -51,21 +54,26 @@ Gerar artefatos completos de produto e engenharia a partir da demanda e da anál
 ## Critérios de Qualidade
 
 ### User Story
+
 - Seguir formato Connextra (Como / Eu quero / Para que)
 - Critérios de aceite em formato BDD simplificado (Dado/Quando/Então)
 - Mínimo 3 critérios de aceite
 
 ### BDD
+
 - Mínimo 2 cenários (happy path + erro/edge case)
 - Tags relevantes (@auth, @payments, etc.)
 
 ### Test Cases
+
 - Cobrir: happy path, edge cases, casos negativos
 - ID sequencial (TC-001, TC-002...)
 
 ### DoD
+
 - Pelo menos 2 itens em cada categoria
 - Itens específicos para a demanda, não genéricos
 
 ## Implementação
+
 - Implementado em: `/services/claude/artifact-generation.service.ts`

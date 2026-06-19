@@ -89,22 +89,26 @@ Leia `/docs/product-overview.md` para contexto completo antes de qualquer tarefa
 ## Padrões de Código
 
 ### TypeScript
+
 - Sem `any` — use tipos específicos ou `unknown`
 - Tipos em `/types/` quando usados em mais de 1 arquivo
 - Props de componentes: interface inline ou no mesmo arquivo
 
 ### Componentes React
+
 - `'use client'` apenas quando usar hooks de browser (useState, useEffect, etc.)
 - Server Components por padrão (sem 'use client')
 - Sem lógica de negócio em componentes — apenas apresentação
 
 ### Segurança
+
 - Tokens e API keys: APENAS em server-side (lib/config/env.ts)
 - NUNCA passar `process.env.ANTHROPIC_API_KEY` para o frontend
 - NUNCA logar secrets
 - API routes são o único ponto de acesso às integrações externas
 
 ### Estilos
+
 - Tailwind CSS v4 — sem CSS modules, sem styled-components
 - Design tokens: ver `/design/screens/README.md`
 - Background padrão: `bg-gray-950`
@@ -116,11 +120,13 @@ Leia `/docs/product-overview.md` para contexto completo antes de qualquer tarefa
 ## Design System
 
 Antes de criar qualquer componente visual novo, verifique:
+
 1. Existe um componente similar em `/components/ui/`?
 2. O padrão visual está descrito em `/design/screens/README.md`?
 3. Está consistente com as telas já existentes?
 
 Paleta de cores:
+
 - `bg-gray-950` → fundo geral
 - `bg-gray-900` → cards e painéis
 - `violet-600` → botão primário, destaques
@@ -140,6 +146,7 @@ Paleta de cores:
 ```
 
 Claude Code deve:
+
 1. Ler o arquivo de flow especificado
 2. Verificar tipos em /types/
 3. Verificar se há services existentes
@@ -153,6 +160,7 @@ Claude Code deve:
 ```
 
 Claude Code deve:
+
 1. Ler /docs/integrations.md
 2. Verificar /lib/clickup/client.ts
 3. Verificar /services/clickup/clickup.service.ts

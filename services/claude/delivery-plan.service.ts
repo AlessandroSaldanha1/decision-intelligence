@@ -5,18 +5,21 @@ import type { DeliveryPlanInput, DeliveryPlanOutput } from '@/types/claude'
 const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
   epic: {
     title: 'Autenticação OAuth — Google e GitHub',
-    description: 'Implementar fluxo completo de autenticação OAuth com suporte a Google e GitHub, incluindo gerenciamento de sessão seguro e experiência de usuário fluida.',
+    description:
+      'Implementar fluxo completo de autenticação OAuth com suporte a Google e GitHub, incluindo gerenciamento de sessão seguro e experiência de usuário fluida.',
     estimateDays: 5,
   },
   mainTask: {
     title: 'Implementar autenticação OAuth',
-    description: 'Configurar NextAuth v5 com providers Google e GitHub, gerenciar sessões e proteger rotas da aplicação.',
+    description:
+      'Configurar NextAuth v5 com providers Google e GitHub, gerenciar sessões e proteger rotas da aplicação.',
   },
   subtasks: {
     backend: [
       {
         title: 'Configurar NextAuth com providers OAuth',
-        description: 'Instalar e configurar NextAuth v5, adicionar providers Google e GitHub, configurar callbacks de sessão.',
+        description:
+          'Instalar e configurar NextAuth v5, adicionar providers Google e GitHub, configurar callbacks de sessão.',
         estimateHours: 4,
         priority: 'critical',
         dependencies: [],
@@ -24,7 +27,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
       },
       {
         title: 'Implementar rate limiting no callback',
-        description: 'Adicionar middleware de rate limiting no endpoint /api/auth/callback para prevenir abuso.',
+        description:
+          'Adicionar middleware de rate limiting no endpoint /api/auth/callback para prevenir abuso.',
         estimateHours: 2,
         priority: 'high',
         dependencies: ['Configurar NextAuth com providers OAuth'],
@@ -32,7 +36,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
       },
       {
         title: 'Configurar proteção de rotas no middleware',
-        description: 'Criar middleware Next.js para verificar sessão e redirecionar usuários não autenticados.',
+        description:
+          'Criar middleware Next.js para verificar sessão e redirecionar usuários não autenticados.',
         estimateHours: 2,
         priority: 'high',
         dependencies: ['Configurar NextAuth com providers OAuth'],
@@ -42,7 +47,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
     frontend: [
       {
         title: 'Criar tela de login',
-        description: 'Implementar página /login com botões de OAuth, estados de loading e mensagens de erro.',
+        description:
+          'Implementar página /login com botões de OAuth, estados de loading e mensagens de erro.',
         estimateHours: 4,
         priority: 'critical',
         dependencies: [],
@@ -50,7 +56,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
       },
       {
         title: 'Adicionar UserMenu no header',
-        description: 'Exibir avatar e opção de logout para usuários autenticados no header da aplicação.',
+        description:
+          'Exibir avatar e opção de logout para usuários autenticados no header da aplicação.',
         estimateHours: 2,
         priority: 'medium',
         dependencies: ['Criar tela de login'],
@@ -70,7 +77,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
     product: [
       {
         title: 'Configurar OAuth Apps em Google Console e GitHub',
-        description: 'Criar e configurar as aplicações OAuth nos portais dos providers, obter client ID e secret.',
+        description:
+          'Criar e configurar as aplicações OAuth nos portais dos providers, obter client ID e secret.',
         estimateHours: 1,
         priority: 'critical',
         dependencies: [],
@@ -80,7 +88,8 @@ const MOCK_DELIVERY_PLAN: DeliveryPlanOutput = {
     devops: [
       {
         title: 'Configurar variáveis de ambiente nos ambientes',
-        description: 'Adicionar GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_ID, GITHUB_SECRET e NEXTAUTH_SECRET em staging e produção.',
+        description:
+          'Adicionar GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_ID, GITHUB_SECRET e NEXTAUTH_SECRET em staging e produção.',
         estimateHours: 1,
         priority: 'critical',
         dependencies: ['Configurar OAuth Apps em Google Console e GitHub'],

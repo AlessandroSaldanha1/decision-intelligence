@@ -1,14 +1,17 @@
 # Prompt — Claude Analysis
 
 ## Objetivo
+
 Analisar uma nova demanda de produto com base na descrição e no contexto organizacional recuperado via RAG.
 
 ## Input
+
 - `demand`: texto da demanda
 - `organizationalContext`: contexto recuperado via RAG (formatted string)
 - `additionalContext`: contexto adicional opcional
 
 ## Output (JSON)
+
 ```json
 {
   "ambiguities": ["string"],

@@ -1,4 +1,9 @@
-import type { KnowledgeDocument, KnowledgeInsight, KnowledgeSource, SimilarityResult } from '@/types/knowledge'
+import type {
+  KnowledgeDocument,
+  KnowledgeInsight,
+  KnowledgeSource,
+  SimilarityResult,
+} from '@/types/knowledge'
 
 export const mockKnowledgeSources: KnowledgeSource[] = [
   {
@@ -146,8 +151,9 @@ export function mockSearch(query: string, limit = 5): SimilarityResult[] {
     .map((doc) => {
       const titleScore = doc.title.toLowerCase().includes(queryLower) ? 0.9 : 0
       const contentScore = doc.content.toLowerCase().includes(queryLower) ? 0.7 : 0
-      const tagScore =
-        (doc.metadata.tags ?? []).some((t) => t.toLowerCase().includes(queryLower)) ? 0.8 : 0
+      const tagScore = (doc.metadata.tags ?? []).some((t) => t.toLowerCase().includes(queryLower))
+        ? 0.8
+        : 0
       const score = Math.max(titleScore, contentScore, tagScore) + Math.random() * 0.1
 
       return {

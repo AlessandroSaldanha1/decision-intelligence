@@ -14,8 +14,14 @@ export const mockWorkspaces: ClickUpWorkspace[] = [
     color: '#7C3AED',
     avatar: null,
     members: [
-      { user: { id: 1, username: 'maria.silva', email: 'maria@empresa.com', profilePicture: null }, role: 1 },
-      { user: { id: 2, username: 'joao.santos', email: 'joao@empresa.com', profilePicture: null }, role: 2 },
+      {
+        user: { id: 1, username: 'maria.silva', email: 'maria@empresa.com', profilePicture: null },
+        role: 1,
+      },
+      {
+        user: { id: 2, username: 'joao.santos', email: 'joao@empresa.com', profilePicture: null },
+        role: 2,
+      },
     ],
   },
   {
@@ -24,7 +30,10 @@ export const mockWorkspaces: ClickUpWorkspace[] = [
     color: '#2563EB',
     avatar: null,
     members: [
-      { user: { id: 3, username: 'ana.costa', email: 'ana@empresa.com', profilePicture: null }, role: 1 },
+      {
+        user: { id: 3, username: 'ana.costa', email: 'ana@empresa.com', profilePicture: null },
+        role: 1,
+      },
     ],
   },
 ]
@@ -98,7 +107,9 @@ export const mockTasks: ClickUpTask[] = [
     date_created: '1700000000000',
     date_updated: '1700500000000',
     creator: { id: 1, username: 'maria.silva', email: 'maria@empresa.com', profilePicture: null },
-    assignees: [{ id: 2, username: 'joao.santos', email: 'joao@empresa.com', profilePicture: null }],
+    assignees: [
+      { id: 2, username: 'joao.santos', email: 'joao@empresa.com', profilePicture: null },
+    ],
     tags: [{ name: 'auth', tag_fg: '#fff', tag_bg: '#7C3AED', creator: 1 }],
     parent: null,
     priority: { id: 'p1', priority: 'high', color: '#f50000', orderindex: '2' },
@@ -139,7 +150,9 @@ export const mockComments: Record<string, ClickUpComment[]> = {
   't-001': [
     {
       id: 'c-001',
-      comment: [{ text: 'Decidimos usar NextAuth v5 para simplificar a integração com o App Router.' }],
+      comment: [
+        { text: 'Decidimos usar NextAuth v5 para simplificar a integração com o App Router.' },
+      ],
       comment_text: 'Decidimos usar NextAuth v5 para simplificar a integração com o App Router.',
       user: { id: 1, username: 'maria.silva', email: 'maria@empresa.com', profilePicture: null },
       resolved: false,
@@ -147,8 +160,13 @@ export const mockComments: Record<string, ClickUpComment[]> = {
     },
     {
       id: 'c-002',
-      comment: [{ text: 'Atenção: precisamos adicionar rate limiting no endpoint de callback para evitar abuso.' }],
-      comment_text: 'Atenção: precisamos adicionar rate limiting no endpoint de callback para evitar abuso.',
+      comment: [
+        {
+          text: 'Atenção: precisamos adicionar rate limiting no endpoint de callback para evitar abuso.',
+        },
+      ],
+      comment_text:
+        'Atenção: precisamos adicionar rate limiting no endpoint de callback para evitar abuso.',
       user: { id: 2, username: 'joao.santos', email: 'joao@empresa.com', profilePicture: null },
       resolved: false,
       date: '1700450000000',
@@ -157,8 +175,13 @@ export const mockComments: Record<string, ClickUpComment[]> = {
   't-002': [
     {
       id: 'c-003',
-      comment: [{ text: 'A fila SQS já está criada no AWS. Precisamos apenas configurar as políticas IAM.' }],
-      comment_text: 'A fila SQS já está criada no AWS. Precisamos apenas configurar as políticas IAM.',
+      comment: [
+        {
+          text: 'A fila SQS já está criada no AWS. Precisamos apenas configurar as políticas IAM.',
+        },
+      ],
+      comment_text:
+        'A fila SQS já está criada no AWS. Precisamos apenas configurar as políticas IAM.',
       user: { id: 3, username: 'ana.costa', email: 'ana@empresa.com', profilePicture: null },
       resolved: false,
       date: '1700550000000',

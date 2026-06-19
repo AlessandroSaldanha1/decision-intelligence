@@ -6,7 +6,9 @@ export default async function PublishPage({ params }: { params: Promise<{ id: st
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 space-y-8">
       <div className="space-y-1">
-        <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Publicar no ClickUp</div>
+        <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+          Publicar no ClickUp
+        </div>
         <h1 className="text-2xl font-bold text-white">Configurar Publicação</h1>
         <p className="text-gray-400">Revise e confirme o que será criado no ClickUp.</p>
       </div>
@@ -20,7 +22,8 @@ export default async function PublishPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="flex items-center gap-2 text-gray-300">
             <span className="text-gray-500">&#9679;</span>
-            <strong>7 Subtasks</strong> distribuídas por frente (Backend, Frontend, QA, Produto, DevOps)
+            <strong>7 Subtasks</strong> distribuídas por frente (Backend, Frontend, QA, Produto,
+            DevOps)
           </div>
           <div className="flex items-center gap-2 text-gray-300">
             <span className="text-gray-500">&#9679;</span>
@@ -39,7 +42,8 @@ export default async function PublishPage({ params }: { params: Promise<{ id: st
 
       <div className="rounded-xl border border-amber-500/20 bg-amber-600/10 p-4">
         <p className="text-sm text-amber-300">
-          <strong>Modo demo:</strong> A publicação será simulada. Configure CLICKUP_API_TOKEN no .env para publicar de verdade.
+          <strong>Modo demo:</strong> A publicação será simulada. Configure CLICKUP_API_TOKEN no
+          .env para publicar de verdade.
         </p>
       </div>
 

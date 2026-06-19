@@ -1,16 +1,20 @@
 # Fluxo 05 — Claude Analysis
 
 ## Objetivo
+
 Exibir a análise inteligente gerada pelo Claude com base na demanda e no contexto organizacional.
 
 ## Rota
+
 `/demand/[id]/analysis`
 
 ## Entrada do Usuário
+
 - Leitura da análise (tela informativa)
 - Botão "Gerar Artefatos"
 
 ## Saída Esperada
+
 - Usuário entende os riscos, ambiguidades e dependências da demanda
 - Redirect para `/demand/[id]/artifacts`
 
@@ -27,24 +31,29 @@ Exibir a análise inteligente gerada pelo Claude com base na demanda e no contex
 ## Estados da Tela
 
 ### Loading
+
 - "Executando análise com Claude..."
 - Skeleton loading nos cards
 
 ### Com Análise
+
 - Score bem visível no topo
 - Seções colapsáveis (futuro)
 
 ### Erro
+
 - Retry automático 1x, depois exibir erro
 - Opção de tentar novamente
 
 ## Componentes
+
 - `RiskScoreGauge` — indicador visual do score
 - `AmbiguityCard` — ponto de ambiguidade
 - `RiskCard` — risco com severidade e mitigação
 - `DependencyBadge` — dependência por tipo
 
 ## Observações de UX
+
 - Risco crítico (≥70) deve ter fundo vermelho suave no card de score
 - Ambiguidades são amarelas, riscos têm cor por severidade
 - Não exibir análise vazia se Claude retornou erro — mostrar estado de erro claro

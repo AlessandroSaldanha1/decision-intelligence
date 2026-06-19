@@ -24,6 +24,7 @@ query → embedding → similaridade coseno → top-k chunks → contexto para C
 ```
 
 **Opções de Vector DB:**
+
 - **pgvector**: extensão do PostgreSQL, boa para começar
 - **Pinecone**: managed, sem infra, escalável
 - **Qdrant**: self-hosted, open source, performático
@@ -45,6 +46,7 @@ query → embedding → similaridade coseno → top-k chunks → contexto para C
 ## Enriquecimento do Contexto
 
 Além dos documentos similares, o RAG também extrai:
+
 - **Padrões**: comportamentos recorrentes do time
 - **Riscos**: problemas que já ocorreram em contextos similares
 - **Decisões**: escolhas técnicas consolidadas
@@ -53,9 +55,9 @@ Além dos documentos similares, o RAG também extrai:
 ## Interface do KnowledgeService
 
 ```typescript
-service.getSources()              // lista fontes disponíveis
-service.search(query, limit)      // busca semântica
-service.getInsights(tags)         // insights por tags
-service.buildOrganizationalContext(demand)  // contexto completo
-service.formatContextForClaude(context)     // formata para injeção no prompt
+service.getSources() // lista fontes disponíveis
+service.search(query, limit) // busca semântica
+service.getInsights(tags) // insights por tags
+service.buildOrganizationalContext(demand) // contexto completo
+service.formatContextForClaude(context) // formata para injeção no prompt
 ```

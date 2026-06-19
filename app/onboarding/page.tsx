@@ -7,7 +7,9 @@ export default function OnboardingPage() {
         <div className="space-y-2">
           <div className="text-5xl font-bold text-violet-400">&#9670;</div>
           <h1 className="text-3xl font-bold text-white">Decision Intelligence</h1>
-          <p className="text-gray-400">Transformamos conhecimento organizacional em software entregável.</p>
+          <p className="text-gray-400">
+            Transformamos conhecimento organizacional em software entregável.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-gray-900 p-8 space-y-6">
@@ -20,7 +22,9 @@ export default function OnboardingPage() {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">ClickUp API Token</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1">
+                ClickUp API Token
+              </label>
               <input
                 type="password"
                 placeholder="pk_xxxxxxxxxxxxxxxx"

@@ -14,20 +14,25 @@ Exemplo: `01-onboarding.md`, `05-analysis-page.md`
 # Nome da Tela
 
 ## Layout
+
 - Largura máxima
 - Estrutura geral (header/main/footer)
 - Grid/flex utilizado
 
 ## Componentes Principais
+
 - Lista de componentes na tela com props esperadas
 
 ## Cores e Tokens
+
 - Qualquer desvio do padrão global
 
 ## Estados
+
 - Screenshots ou descrição textual de cada estado
 
 ## Notas de Acessibilidade
+
 - Labels ARIA necessários
 - Ordem de tab
 ```

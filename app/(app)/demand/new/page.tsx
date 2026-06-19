@@ -5,12 +5,16 @@ export default function NewDemandPage() {
     <div className="mx-auto max-w-2xl px-4 py-12 space-y-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-white">Nova Demanda</h1>
-        <p className="text-gray-400">Descreva o que precisa ser construído. Quanto mais contexto, melhor a análise.</p>
+        <p className="text-gray-400">
+          Descreva o que precisa ser construído. Quanto mais contexto, melhor a análise.
+        </p>
       </div>
 
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Título da demanda</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+            Título da demanda
+          </label>
           <input
             type="text"
             placeholder="Ex: Implementar notificações em tempo real"
@@ -19,7 +23,9 @@ export default function NewDemandPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Descrição detalhada</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+            Descrição detalhada
+          </label>
           <textarea
             rows={8}
             placeholder="Descreva o problema que precisa resolver, o comportamento esperado, contexto de negócio, restrições técnicas conhecidas..."
@@ -28,8 +34,12 @@ export default function NewDemandPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Fontes de Conhecimento</label>
-          <p className="text-xs text-gray-500 mb-3">Selecione quais fontes serão consultadas para enriquecer a análise.</p>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Fontes de Conhecimento
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Selecione quais fontes serão consultadas para enriquecer a análise.
+          </p>
           <div className="space-y-2">
             {[
               { id: 'tasks', label: 'Tasks e Sprints', count: '247 docs' },
@@ -37,11 +47,23 @@ export default function NewDemandPage() {
             ].map((source) => (
               <label key={source.id} className="flex items-center gap-3 cursor-pointer group">
                 <div className="h-4 w-4 rounded bg-violet-600 flex items-center justify-center flex-shrink-0">
-                  <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="h-2.5 w-2.5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
-                <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{source.label}</span>
+                <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                  {source.label}
+                </span>
                 <span className="text-xs text-gray-500">{source.count}</span>
               </label>
             ))}

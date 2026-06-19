@@ -37,7 +37,9 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-gray-400">Workspace: <span className="text-violet-300">Produto Digital</span></p>
+          <p className="text-gray-400">
+            Workspace: <span className="text-violet-300">Produto Digital</span>
+          </p>
         </div>
         <Link
           href="/demand/new"
@@ -79,7 +81,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   {demand.riskScore !== null && (
-                    <div className={`text-xs font-medium ${demand.riskScore >= 70 ? 'text-red-400' : demand.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'}`}>
+                    <div
+                      className={`text-xs font-medium ${demand.riskScore >= 70 ? 'text-red-400' : demand.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'}`}
+                    >
                       Risco {demand.riskScore}%
                     </div>
                   )}

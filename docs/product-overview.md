@@ -11,6 +11,7 @@ Decision Intelligence é uma plataforma de Inteligência Organizacional que tran
 Times de produto e engenharia perdem tempo reinventando a roda. Decisões técnicas, padrões de implementação, riscos conhecidos e lições aprendidas ficam presos em comentários de tasks, conversas no Slack, e na cabeça das pessoas.
 
 Quando uma nova demanda chega, ninguém sabe:
+
 - Se algo similar já foi feito
 - Quais riscos o time já enfrentou nessa área
 - Quais decisões técnicas já foram tomadas
