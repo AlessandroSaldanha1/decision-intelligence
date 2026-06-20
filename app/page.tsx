@@ -66,7 +66,7 @@ const intelGen = [
   { n: '312', l: 'riscos identificados', tip: 'Riscos detectados pelo assistente IA ao analisar demandas com base no histórico organizacional.' },
   { n: '194', l: 'requisitos enriquecidos', tip: 'Requisitos que receberam contexto adicional com base em experiências anteriores similares.' },
   { n: '76', l: 'incidentes reaproveitados', tip: 'Ocorrências passadas usadas como referência para enriquecer análises de novas demandas.' },
-  { n: '88%', l: 'score de enriquecimento contextual', tip: 'Percentual médio de enriquecimento contextual aplicado às demandas — quanto o histórico organizacional contribuiu para as análises.' },
+  { n: '88%', l: 'score de enriquecimento contextual', tip: 'Percentual médio de enriquecimento contextual. Indica quanto o histórico da organização contribuiu para as análises.' },
 ];
 
 const connectedSources = ['ClickUp'];
@@ -523,9 +523,9 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
             margin: '26px 0 0',
           }}
         >
-          O conhecimento da organização existe — mas está preso em ClickUp, Jira, Confluence, Notion,
-          reuniões e pessoas. A lore descobre e reaproveita essa inteligência para
-          que nenhum time resolva, sozinho, o que a empresa já aprendeu.
+          O conhecimento da organização existe, mas está disperso: ClickUp, Jira,
+          Confluence, Notion, reuniões e pessoas. A lore localiza e reaproveita essa
+          inteligência para que nenhum time resolva sozinho o que a empresa já sabe.
         </p>
 
         <div style={{ display: 'flex', gap: 14, marginTop: 34, flexWrap: 'wrap' }}>
@@ -756,8 +756,8 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             margin: '20px 0 0',
           }}
         >
-          Antes de gerar qualquer artefato, a plataforma busca em toda a organização o que já foi
-          decidido, errado e resolvido sobre problemas semelhantes.
+          Antes de gerar qualquer artefato, a plataforma vasculha a organização
+          em busca do que já foi decidido, errado e resolvido em problemas parecidos.
         </p>
       </div>
 
@@ -871,8 +871,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             margin: '0 0 24px',
           }}
         >
-          Selecione o Workspace e as fontes que serão utilizadas para construir a memória
-          organizacional desta análise.
+          Selecione o Workspace e as fontes que serão consultadas durante a análise desta demanda.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18 }}>
@@ -1017,9 +1016,8 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
                 margin: 0,
               }}
             >
-              Estas fontes alimentarão o RAG e serão utilizadas para recuperar experiências
-              anteriores, decisões, riscos, regras de negócio e soluções já utilizadas pela
-              organização.
+              Estas fontes serão consultadas para recuperar experiências anteriores,
+              decisões, riscos, regras de negócio e soluções já aplicadas na organização.
             </p>
           </div>
 
@@ -1223,35 +1221,35 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
 
 const quipsByStep: Record<string, string[]> = {
   searching: [
-    'Vasculhando o ClickUp como se fosse o baú do tesouro…',
-    'Lendo 48 mil comentários. Sim, todos.',
-    'Consultando o histórico de decisões (algumas delas, questionáveis)…',
-    'Encontrando padrões que ninguém sabia que existiam…',
-    'Buscando quem já resolveu algo parecido antes (alguém sempre já resolveu).',
+    'Vasculhando o ClickUp…',
+    'Lendo tasks e comentários.',
+    'Consultando o histórico de decisões.',
+    'Encontrando projetos com contexto parecido.',
+    'Buscando quem já passou por isso antes.',
   ],
   analysis: [
-    'Perguntando ao assistente IA o que ele acha disso tudo…',
-    'O assistente está lendo entre as linhas. E entre as tasks.',
-    'Identificando o que pode dar errado antes que você descubra sozinho…',
-    'Cruzando sua demanda com anos de histórico organizacional.',
-    'Analisando riscos que você nem sabia que existiam. De nada.',
-    'Pensando nas perguntas difíceis que ninguém quer fazer em reunião.',
+    'Analisando o contexto da demanda…',
+    'Lendo entre as linhas. E entre as tasks.',
+    'Identificando o que pode dar errado.',
+    'Buscando projetos anteriores com contexto similar.',
+    'Mapeando riscos.',
+    'Pensando nas perguntas que ninguém quer fazer em reunião.',
   ],
   artifacts: [
-    'Escrevendo a User Story com todo o cuidado que ela merece…',
-    'Gerando BDD. Dado que você pediu, quando o sistema processar, então vai aparecer.',
-    'Checando se os critérios de aceite fazem sentido. Alguém tinha que fazer isso.',
-    'Transformando reunião em especificação. Mágica organizacional em andamento.',
-    'Definindo o Definition of Done. Porque "tá bom" não é critério.',
-    'Construindo artefatos com base na experiência de quem veio antes.',
+    'Escrevendo a User Story…',
+    'Gerando os cenários BDD.',
+    'Checando os critérios de aceite.',
+    'Estruturando os casos de teste.',
+    'Definindo o Definition of Done.',
+    'Revisando e ajustando os artefatos.',
   ],
   plan: [
-    'Montando o plano de entrega com base no que realmente funciona aqui…',
-    'Distribuindo tarefas entre Backend, Frontend e QA. Com carinho.',
-    'Calculando o risco. Spoiler: sempre tem algum.',
-    'Verificando dependências para evitar bloqueios surpresa.',
-    'Estruturando épico e sprints. O time vai agradecer (ou reclamar, mas com estrutura).',
-    'Consultando projetos similares para não reinventar a roda.',
+    'Montando o plano de entrega…',
+    'Distribuindo tarefas entre as frentes.',
+    'Calculando o risco.',
+    'Verificando dependências.',
+    'Estruturando o épico.',
+    'Consultando projetos similares.',
   ],
 };
 
@@ -1289,7 +1287,7 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
     `${stats ? `${stats.spaces} spaces` : 'Spaces'} · ${stats ? `${stats.lists} listas` : 'listas'}`,
     'Confluence + Notion · documentação',
     'Incidentes e post-mortems',
-    'Construindo contexto semântico (RAG)',
+    'Preparando contexto para análise',
     'Passando para a IA…',
   ];
   return (
@@ -1512,8 +1510,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
           lineHeight: 1.5,
         }}
       >
-        Conhecimento relevante descoberto fora do projeto atual — decisões, incidentes e soluções
-        que normalmente se perderiam.
+        Decisões, incidentes e soluções encontrados fora do projeto atual que normalmente se perderiam.
       </p>
 
       {/* Counts grid */}
@@ -1996,8 +1993,8 @@ function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysi
   const sections = analysis ?? [];
   const c = insights?.counts;
   const statsLine = c
-    ? `A IA cruzou a demanda com o conhecimento de ${c.projetos} projeto${c.projetos !== 1 ? 's' : ''}, ${c.incidentes} incidente${c.incidentes !== 1 ? 's' : ''} e ${c.regras} regra${c.regras !== 1 ? 's' : ''} organizacional${c.regras !== 1 ? 'is' : ''}.`
-    : 'A IA analisou a demanda com base no conhecimento organizacional disponível.';
+    ? `Análise cruzada com ${c.projetos} projeto${c.projetos !== 1 ? 's' : ''}, ${c.incidentes} incidente${c.incidentes !== 1 ? 's' : ''} e ${c.regras} regra${c.regras !== 1 ? 's' : ''} do histórico da organização.`
+    : 'Análise realizada com base no histórico disponível.';
   return (
     <div className="di-scrn" style={{ padding: '56px var(--pad-x) 80px', maxWidth: 1000 }}>
       {/* Header row */}
@@ -2298,7 +2295,7 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
         <span style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.4 }}>
           {(() => {
             const c = insights?.counts;
-            if (!c) return 'Gerado utilizando o conhecimento organizacional disponível.';
+            if (!c) return 'Gerado com base no histórico disponível.';
             return (
               <>
                 Gerado utilizando conhecimento de{' '}
