@@ -365,11 +365,9 @@ interface PlanProps {
   go: GoFn;
 }
 
-interface ListOption {
-  id: string;
-  name: string;
-  spaceName: string;
-}
+interface ListOption { id: string; name: string; }
+interface FolderOption { id: string; name: string; lists: ListOption[]; }
+interface SpaceOption { id: string; name: string; folders: FolderOption[]; lists: ListOption[]; }
 
 interface PreviewProps {
   demand: string;
@@ -3079,24 +3077,68 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
 
-  const [lists, setLists] = useState<ListOption[]>([]);
+  const [spaces, setSpaces] = useState<SpaceOption[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
+  const [selectedSpaceId, setSelectedSpaceId] = useState('');
+  const [selectedFolderId, setSelectedFolderId] = useState('');
 
   useEffect(() => {
     if (!workspaceId) return;
     setListsLoading(true);
     fetch(`/api/platform/lists?workspaceId=${encodeURIComponent(workspaceId)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { lists: ListOption[] } | null) => {
-        if (data?.lists?.length) {
-          setLists(data.lists);
-          if (!publishConfig.listId) updateCfg('listId', data.lists[0].id);
+      .then((data: { spaces: SpaceOption[] } | null) => {
+        if (data?.spaces?.length) {
+          setSpaces(data.spaces);
+          const firstSpace = data.spaces[0];
+          setSelectedSpaceId(firstSpace.id);
+          const firstFolder = firstSpace.folders[0];
+          if (firstFolder) {
+            setSelectedFolderId(firstFolder.id);
+            if (!publishConfig.listId && firstFolder.lists[0]) updateCfg('listId', firstFolder.lists[0].id);
+          } else if (firstSpace.lists[0]) {
+            setSelectedFolderId('__folderless__');
+            if (!publishConfig.listId) updateCfg('listId', firstSpace.lists[0].id);
+          }
         }
       })
       .catch(() => {})
       .finally(() => setListsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
+
+  const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? null;
+  const availableFolders = selectedSpace?.folders ?? [];
+  const folderlessLists = selectedSpace?.lists ?? [];
+  const currentLists = selectedFolderId === '__folderless__'
+    ? folderlessLists
+    : (availableFolders.find((f) => f.id === selectedFolderId)?.lists ?? []);
+
+  const handleSpaceChange = (spaceId: string) => {
+    setSelectedSpaceId(spaceId);
+    const sp = spaces.find((s) => s.id === spaceId);
+    if (!sp) return;
+    const firstFolder = sp.folders[0];
+    if (firstFolder) {
+      setSelectedFolderId(firstFolder.id);
+      if (firstFolder.lists[0]) updateCfg('listId', firstFolder.lists[0].id);
+    } else if (sp.lists[0]) {
+      setSelectedFolderId('__folderless__');
+      updateCfg('listId', sp.lists[0].id);
+    } else {
+      setSelectedFolderId('');
+      updateCfg('listId', '');
+    }
+  };
+
+  const handleFolderChange = (folderId: string) => {
+    setSelectedFolderId(folderId);
+    const lists = folderId === '__folderless__'
+      ? folderlessLists
+      : (availableFolders.find((f) => f.id === folderId)?.lists ?? []);
+    if (lists[0]) updateCfg('listId', lists[0].id);
+    else updateCfg('listId', '');
+  };
 
   const connReal = publishConfig.listId.trim().length > 0;
   const connLabel = connReal ? 'ClickUp real conectado' : 'Demo mode';
@@ -3322,34 +3364,65 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
               Configuração do ClickUp
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* List selector */}
-              <div>
-                <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>
+              {/* Destination cascade */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'block' }}>
                   DESTINO
                 </label>
                 {listsLoading ? (
                   <div style={{ padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
-                    Carregando lists…
+                    Carregando estrutura do ClickUp…
                   </div>
-                ) : lists.length > 0 ? (
-                  <select
-                    value={publishConfig.listId}
-                    onChange={(e) => updateCfg('listId', e.target.value)}
-                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
-                  >
-                    {lists.map((l) => (
-                      <option key={l.id} value={l.id}>
-                        {l.spaceName} · {l.name}
-                      </option>
-                    ))}
-                  </select>
+                ) : spaces.length > 0 ? (
+                  <>
+                    {/* Space */}
+                    <div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>SPACE</div>
+                      <select
+                        value={selectedSpaceId}
+                        onChange={(e) => handleSpaceChange(e.target.value)}
+                        style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
+                      >
+                        {spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Folder */}
+                    {(availableFolders.length > 0 || folderlessLists.length > 0) && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>PASTA</div>
+                        <select
+                          value={selectedFolderId}
+                          onChange={(e) => handleFolderChange(e.target.value)}
+                          style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
+                        >
+                          {availableFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                          {folderlessLists.length > 0 && <option value="__folderless__">Sem pasta</option>}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* List */}
+                    {currentLists.length > 0 && (
+                      <div>
+                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>LIST</div>
+                        <select
+                          value={publishConfig.listId}
+                          onChange={(e) => updateCfg('listId', e.target.value)}
+                          style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
+                        >
+                          {currentLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <input
                     type="text"
                     value={publishConfig.listId}
                     onChange={(e) => updateCfg('listId', e.target.value)}
                     placeholder="ID da list (ex: 9014388920)"
-                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
                   />
                 )}
               </div>

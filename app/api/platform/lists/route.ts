@@ -2,16 +2,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isMockMode } from '@/lib/config/env'
 import { ClickUpService } from '@/services/clickup/clickup.service'
 
+export interface FolderOption {
+  id: string
+  name: string
+  lists: ListOption[]
+}
+
+export interface SpaceOption {
+  id: string
+  name: string
+  folders: FolderOption[]
+  lists: ListOption[] // folderless lists
+}
+
 export interface ListOption {
   id: string
   name: string
-  spaceName: string
 }
 
-const MOCK_LISTS: ListOption[] = [
-  { id: '9014388920', name: 'Backlog', spaceName: 'Tecnologia' },
-  { id: '9014388921', name: 'Sprint Atual', spaceName: 'Tecnologia' },
-  { id: '9014388922', name: 'Projetos', spaceName: 'Dados' },
+const MOCK_SPACES: SpaceOption[] = [
+  {
+    id: 's1',
+    name: 'Tecnologia',
+    folders: [
+      { id: 'f1', name: 'Backlog', lists: [{ id: '9014388920', name: 'Geral' }, { id: '9014388921', name: 'Sprint Atual' }] },
+      { id: 'f2', name: 'Em andamento', lists: [{ id: '9014388922', name: 'Dev' }] },
+    ],
+    lists: [{ id: '9014388923', name: 'Ideias' }],
+  },
+  {
+    id: 's2',
+    name: 'Dados',
+    folders: [],
+    lists: [{ id: '9014388924', name: 'Projetos' }, { id: '9014388925', name: 'Documentação' }],
+  },
 ]
 
 export async function GET(req: NextRequest) {
@@ -22,14 +46,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (isMockMode()) {
-    return NextResponse.json({ lists: MOCK_LISTS })
+    return NextResponse.json({ spaces: MOCK_SPACES })
   }
 
   try {
     const svc = new ClickUpService()
     const spaces = await svc.getSpaces(workspaceId)
 
-    const results: ListOption[] = []
+    const result: SpaceOption[] = []
 
     await Promise.all(
       spaces.map(async (space) => {
@@ -39,33 +63,40 @@ export async function GET(req: NextRequest) {
             svc.getFolderlessLists(space.id),
           ])
 
-          for (const list of folderless) {
-            results.push({ id: list.id, name: list.name, spaceName: space.name })
+          const spaceOption: SpaceOption = {
+            id: space.id,
+            name: space.name,
+            folders: [],
+            lists: folderless.map((l) => ({ id: l.id, name: l.name })),
           }
 
           await Promise.all(
             folders.map(async (folder) => {
               try {
                 const lists = await svc.getLists(folder.id)
-                for (const list of lists) {
-                  results.push({ id: list.id, name: `${folder.name} / ${list.name}`, spaceName: space.name })
-                }
+                spaceOption.folders.push({
+                  id: folder.id,
+                  name: folder.name,
+                  lists: lists.map((l) => ({ id: l.id, name: l.name })),
+                })
               } catch {
                 // skip inaccessible folder
               }
             }),
           )
+
+          spaceOption.folders.sort((a, b) => a.name.localeCompare(b.name))
+          result.push(spaceOption)
         } catch {
           // skip inaccessible space
         }
       }),
     )
 
-    results.sort((a, b) => a.spaceName.localeCompare(b.spaceName) || a.name.localeCompare(b.name))
-
-    return NextResponse.json({ lists: results })
+    result.sort((a, b) => a.name.localeCompare(b.name))
+    return NextResponse.json({ spaces: result })
   } catch (err) {
-    console.error('[lists] Failed to fetch ClickUp lists:', err)
-    return NextResponse.json({ error: 'Erro ao buscar lists do ClickUp' }, { status: 502 })
+    console.error('[lists] Failed to fetch ClickUp structure:', err)
+    return NextResponse.json({ error: 'Erro ao buscar estrutura do ClickUp' }, { status: 502 })
   }
 }
