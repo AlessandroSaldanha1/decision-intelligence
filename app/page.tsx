@@ -83,7 +83,6 @@ const memoryMetrics = [
   { n: '12', l: 'Spaces' },
   { n: '43', l: 'Lists' },
   { n: '1.284', l: 'Tasks' },
-  { n: '48.000', l: 'Comentários' },
   { n: '7', l: 'Documentos' },
 ];
 
@@ -1278,7 +1277,6 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
                     { n: String(stats.spaces), l: 'Spaces' },
                     { n: String(stats.lists), l: 'Lists' },
                     { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'Tasks' },
-                    { n: '—', l: 'Comentários' },
                   ]
                 : memoryMetrics
               ).map((m, i, arr) => (
