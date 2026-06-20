@@ -1441,6 +1441,13 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
 }) {
   const loading = insightsState === 'loading';
   const c = insights?.counts;
+  const cardCount = loading ? 3 : (insights?.projects ?? []).length;
+  const projectGridStyle: React.CSSProperties =
+    cardCount === 1
+      ? { display: 'grid', gridTemplateColumns: 'min(100%, 900px)', gap: 20, justifyContent: 'center' }
+      : cardCount === 2
+        ? { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }
+        : { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 };
   const countsData = [
     { n: c ? String(c.projetos) : null, color: 'var(--clay)', label: 'projetos' },
     { n: c ? String(c.incidentes) : null, color: 'var(--clay)', label: 'incidentes' },
@@ -1606,13 +1613,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
       </div>
 
       {/* Project cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 20,
-        }}
-      >
+      <div style={projectGridStyle}>
         {loading ? [0,1,2].map((i) => (
           <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 16, background: 'var(--paper)', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Skel w="55%" h={12} /><Skel w="70%" h={26} r={6} /><Skel w="100%" h={5} r={100} />
@@ -1625,7 +1626,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
               border: '1px solid var(--line)',
               borderRadius: 16,
               background: 'var(--paper)',
-              padding: 24,
+              padding: cardCount === 1 ? 32 : 24,
               display: 'flex',
               flexDirection: 'column',
             }}
