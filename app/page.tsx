@@ -371,6 +371,8 @@ interface AnalysisProps {
 interface ArtifactsProps {
   artifactsState: 'idle' | 'loading' | 'done';
   artifacts: ArtifactsData | null;
+  artifactsError: string | null;
+  onRetryArtifacts: () => void;
   go: GoFn;
 }
 
@@ -2123,8 +2125,7 @@ function AnalysisScreen({ analysisState, analysis, go }: { analysisState: 'idle'
   );
 }
 
-function ArtifactsScreen({ artifactsState, artifacts, go }: { artifactsState: 'idle'|'loading'|'done'; artifacts: {userStory:string;bdd:string[];testCases:string[];dod:string[];dependencies:string[];subtasks:string[]}|null; go: (s:Screen)=>void }) {
-  const art = artifacts ?? artifactsFallback;
+function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArtifacts, go }: { artifactsState: 'idle'|'loading'|'done'; artifacts: ArtifactsData|null; artifactsError: string|null; onRetryArtifacts: ()=>void; go: (s:Screen)=>void }) {
   const bddKeywords = ['Dado', 'Quando', 'Então', 'Mas', 'E'];
 
   const colorBdd = (line: string) => {
@@ -2248,7 +2249,50 @@ function ArtifactsScreen({ artifactsState, artifacts, go }: { artifactsState: 'i
           <Skel h={120} />
           <Skel h={90} />
         </div>
-      ) : (
+      ) : artifactsError || !artifacts ? (
+        /* ── Error state ── */
+        <div style={{
+          border: '1px solid rgba(220,50,50,0.3)',
+          background: 'rgba(220,50,50,0.06)',
+          borderRadius: 16,
+          padding: '32px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          maxWidth: 640,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 22 }}>⚠</span>
+            <span style={{ fontFamily: 'var(--serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 600 }}>
+              Falha na geração de artefatos
+            </span>
+          </div>
+          <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>
+            {artifactsError ?? 'Ocorreu um erro inesperado. Verifique o console para mais detalhes.'}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>
+            Dica: verifique se a análise Claude foi concluída e se a demanda está preenchida.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              className="di-btn-primary"
+              style={{ ...s.btn, ...s.btnPrimary }}
+              onClick={onRetryArtifacts}
+            >
+              Tentar gerar novamente
+            </button>
+            <button
+              className="di-btn-ghost"
+              style={{ ...s.btn, ...s.btnGhost }}
+              onClick={() => go('analysis')}
+            >
+              ← Voltar para Análise
+            </button>
+          </div>
+        </div>
+      ) : (() => {
+        const art = artifacts as ArtifactsData;
+        return (
         <div className="di-stag" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
           {/* 1. User Story card */}
@@ -2480,7 +2524,8 @@ function ArtifactsScreen({ artifactsState, artifacts, go }: { artifactsState: 'i
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -3840,6 +3885,7 @@ export default function DIPage() {
 
   const [artifactsState, setArtifactsState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [artifacts, setArtifacts] = useState<ArtifactsData | null>(null);
+  const [artifactsError, setArtifactsError] = useState<string | null>(null);
 
   const [publishState, setPublishState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [publishStep, setPublishStep] = useState(0);
@@ -3915,26 +3961,37 @@ export default function DIPage() {
 
   const runArtifacts = useCallback(async () => {
     setArtifactsState('loading');
+    setArtifactsError(null);
+    setArtifacts(null);
     try {
       const [res] = await Promise.all([
         fetch('/api/platform/artifacts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand, workspaceId }),
+          body: JSON.stringify({ demand, workspaceId, analysis }),
         }),
         new Promise<void>((r) => setTimeout(r, 1400)),
       ]);
       if (res.ok) {
         const data = (await res.json()) as ArtifactsData;
-        setArtifacts(data);
+        if (data.userStory && Array.isArray(data.bdd) && data.bdd.length > 0) {
+          setArtifacts(data);
+        } else {
+          console.error('[runArtifacts] Received data with invalid structure:', data);
+          setArtifactsError('Os artefatos gerados têm estrutura inválida. Tente novamente.');
+        }
       } else {
-        setArtifacts(artifactsFallback);
+        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg = errData.error ?? `Erro ${res.status} ao gerar artefatos.`;
+        console.error('[runArtifacts] API error:', res.status, msg);
+        setArtifactsError(msg);
       }
-    } catch {
-      setArtifacts(artifactsFallback);
+    } catch (err) {
+      console.error('[runArtifacts] Network error:', err);
+      setArtifactsError('Erro de rede ao chamar o serviço de artefatos.');
     }
     setArtifactsState('done');
-  }, [demand, workspaceId]);
+  }, [demand, workspaceId, analysis]);
 
   const runPlan = useCallback(() => {
     setPlanState('loading');
@@ -3967,6 +4024,7 @@ export default function DIPage() {
     setAnalysis(null);
     setArtifactsState('idle');
     setArtifacts(null);
+    setArtifactsError(null);
     setPlanState('idle');
     setPlan(null);
     setInsightsState('loading');
@@ -4064,7 +4122,13 @@ export default function DIPage() {
         return <AnalysisScreen analysisState={analysisState} analysis={analysis} go={go} />;
       case 'artifacts':
         return (
-          <ArtifactsScreen artifactsState={artifactsState} artifacts={artifacts} go={go} />
+          <ArtifactsScreen
+            artifactsState={artifactsState}
+            artifacts={artifacts}
+            artifactsError={artifactsError}
+            onRetryArtifacts={() => { setArtifactsState('idle'); runArtifacts(); }}
+            go={go}
+          />
         );
       case 'plan':
         return <PlanScreen go={go} planState={planState} plan={plan} />;

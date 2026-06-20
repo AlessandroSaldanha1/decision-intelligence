@@ -6,90 +6,111 @@ import { cleanTranscript } from '@/lib/utils/clean-transcript'
 import { getTranscriptContext } from '@/lib/utils/summarize-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
-const FALLBACK = {
-  userStory: 'Não foi possível gerar os artefatos. Verifique a conexão e tente novamente.',
-  bdd: ['Dado que a demanda foi processada', 'Quando o sistema retornar os artefatos', 'Então eles estarão disponíveis aqui'],
-  testCases: ['Verificar geração de artefatos com conexão ativa'],
-  dod: ['Artefatos gerados com base na demanda real'],
-  dependencies: [],
-  subtasks: [],
+interface AnalysisSection {
+  q: string
+  a: string
 }
 
 function buildTaskContext(tasks: ClickUpTask[]): string {
-  if (!tasks.length) return 'Nenhuma task similar encontrada no histórico organizacional.'
-
+  if (!tasks.length) return ''
   return tasks
-    .slice(0, 10)
+    .slice(0, 8)
     .map((t, i) => {
-      const desc = t.description ? ` — ${t.description.slice(0, 200)}` : ''
+      const desc = t.description ? ` — ${t.description.slice(0, 180)}` : ''
       const status = t.status?.status ?? 'desconhecido'
-      const tags = t.tags?.map((tg) => (typeof tg === 'string' ? tg : tg.name)).join(', ') ?? ''
-      return `${i + 1}. [${status.toUpperCase()}] ${t.name}${desc}${tags ? ` (tags: ${tags})` : ''}`
+      return `${i + 1}. [${status.toUpperCase()}] ${t.name}${desc}`
     })
     .join('\n')
 }
 
+function buildAnalysisContext(analysis: AnalysisSection[]): string {
+  return analysis
+    .filter((s) => s.a)
+    .map((s) => `${s.q}\n${s.a}`)
+    .join('\n\n')
+}
+
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { demand: string; workspaceId?: string }
+  const body = (await req.json()) as {
+    demand: string
+    workspaceId?: string
+    analysis?: AnalysisSection[]
+  }
   const rawDemand = cleanTranscript(body.demand ?? '')
-  const { workspaceId } = body
+  const { workspaceId, analysis } = body
 
   if (isClaudeMockMode()) {
-    return NextResponse.json(FALLBACK)
+    return NextResponse.json({ error: 'Claude não configurado (ANTHROPIC_API_KEY ausente)' }, { status: 503 })
   }
 
-  // Summarize long transcripts to avoid context dilution
-  const demand = await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
+  // Summarize long transcripts — skip if we already have analysis context
+  let demandContext: string
+  if (analysis?.length) {
+    // Use the analysis Q&A as a compact, already-processed context
+    demandContext = `Demanda original: ${rawDemand.slice(0, 800)}\n\nAnálise já realizada:\n${buildAnalysisContext(analysis)}`
+  } else {
+    demandContext = await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
+  }
 
-  // Build real organizational context from ClickUp
+  // Build optional ClickUp context
   let orgContext = ''
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
-      const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
+      const searchQuery = rawDemand.split(/[\n.!?]/)[0].trim().slice(0, 150)
       const tasks = await svc.searchTasks(workspaceId, searchQuery)
-      orgContext = buildTaskContext(tasks)
+      const ctx = buildTaskContext(tasks)
+      if (ctx) orgContext = `\nTasks similares no ClickUp:\n${ctx}`
     } catch (err) {
       console.error('[artifacts] ClickUp search failed:', err)
-      orgContext = 'Erro ao buscar histórico organizacional no ClickUp.'
     }
-  } else {
-    orgContext = 'Nenhum workspace conectado — artefatos baseados apenas na demanda.'
   }
 
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Você é um analista sênior de produto. Com base na demanda abaixo e no histórico organizacional do ClickUp, gere artefatos de especificação.
+  const prompt = `Você é um analista sênior de produto. Gere artefatos de especificação baseados exclusivamente no contexto abaixo.
 
-Demanda: "${demand}"
+${demandContext}${orgContext}
 
-Histórico organizacional (ClickUp):
-${orgContext}
+ATENÇÃO: Baseie os artefatos EXCLUSIVAMENTE no conteúdo acima. Nunca mencione tópicos ausentes do contexto (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses).
 
-ATENÇÃO: Baseie os artefatos EXCLUSIVAMENTE na demanda acima. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
+Responda APENAS com JSON válido sem markdown:
+{"userStory":"Como [perfil], eu quero [ação] para [objetivo]","bdd":["Dado ...","Quando ...","Então ...","E ...","E ..."],"testCases":["TC01 — ...","TC02 — ...","TC03 — ...","TC04 — ..."],"dod":["...","...","...","..."],"dependencies":["...","...","..."],"subtasks":["...","...","...","...","..."]}
 
-Gere artefatos de especificação enriquecidos. Responda APENAS com JSON válido, sem markdown, no formato exato:
-{"userStory":"Como ... eu quero ... para ...","bdd":["Dado ...","Quando ...","Então ...","E ..."],"testCases":["...","...","...","..."],"dod":["...","...","...","..."],"dependencies":["...","...","..."],"subtasks":["...","...","...","..."]}
-Tudo em português. O BDD em Gherkin (Dado/Quando/Então/E). 3 a 5 itens por lista.`
+Regras: tudo em português; BDD em Gherkin (Dado/Quando/Então/E); 4-5 itens em cada lista; testCases com prefixo TC0N.`
 
   try {
     const message = await client.messages.create({
       model: env.anthropic.model,
-      max_tokens: 1500,
+      max_tokens: 1800,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const match = text.match(/\{[\s\S]*\}/)
-    const data = match ? JSON.parse(match[0]) : null
+    console.log('[artifacts] Claude raw response (first 300):', text.slice(0, 300))
 
-    if (data && data.userStory && Array.isArray(data.bdd)) {
-      return NextResponse.json(data)
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) {
+      console.error('[artifacts] No JSON found in Claude response. Full text:', text.slice(0, 500))
+      return NextResponse.json({ error: 'Claude não retornou JSON válido' }, { status: 502 })
     }
-    console.error('[artifacts] Claude returned invalid JSON:', text.slice(0, 200))
-    return NextResponse.json(FALLBACK)
+
+    let data: Record<string, unknown>
+    try {
+      data = JSON.parse(match[0]) as Record<string, unknown>
+    } catch (parseErr) {
+      console.error('[artifacts] JSON.parse failed:', parseErr, '| raw:', match[0].slice(0, 300))
+      return NextResponse.json({ error: 'Falha ao parsear resposta do Claude' }, { status: 502 })
+    }
+
+    if (!data.userStory || !Array.isArray(data.bdd) || data.bdd.length === 0) {
+      console.error('[artifacts] Invalid structure from Claude:', JSON.stringify(data).slice(0, 300))
+      return NextResponse.json({ error: 'Estrutura de artefatos inválida retornada pelo Claude' }, { status: 502 })
+    }
+
+    return NextResponse.json(data)
   } catch (err) {
     console.error('[artifacts] Claude API error:', err)
-    return NextResponse.json(FALLBACK)
+    return NextResponse.json({ error: 'Erro na chamada ao Claude' }, { status: 502 })
   }
 }
