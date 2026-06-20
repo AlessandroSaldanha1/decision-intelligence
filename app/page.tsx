@@ -3257,20 +3257,12 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
               ))}
             </div>
 
-            {/* Auto comment */}
-            <div style={{
-              marginTop: 22,
-              border: '1px solid var(--line)',
-              borderRadius: 8,
-              background: 'var(--paper-2)',
-              padding: '16px 18px',
-            }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--clay)', marginBottom: 8 }}>
-                Comentário automático
-              </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' }}>
-                {previewComment}
-              </div>
+            {/* Demanda enviada badge */}
+            <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sage)', flexShrink: 0, display: 'inline-block' }} />
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sage)' }}>
+                Demanda enviada
+              </span>
             </div>
           </div>
         </div>
