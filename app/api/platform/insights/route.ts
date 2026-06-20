@@ -8,6 +8,9 @@ import type { ClickUpTask } from '@/types/clickup'
 
 interface InsightsProject {
   name: string
+  produto: string
+  modulo: string | null
+  sprint: string | null
   sim: number
   kind: string
   detail: string
@@ -45,7 +48,8 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
     const assignees = t.assignees?.map((a) => a.username).join(', ') ?? ''
     const tags = t.tags?.map((tg) => (typeof tg === 'string' ? tg : tg.name)).join(', ') ?? ''
     const list = t.list?.name ? ` [lista: ${t.list.name}]` : ''
-    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${list}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
+    const folder = t.folder?.name && !t.folder.hidden ? ` [pasta: ${t.folder.name}]` : ''
+    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${folder}${list}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
   }).join('\n')
 }
 
@@ -92,7 +96,7 @@ ATENÇÃO: Baseie seus insights EXCLUSIVAMENTE na demanda e nas tasks acima. Nun
 Retorne APENAS JSON válido, sem markdown, no formato exato:
 {
   "projects": [
-    { "name": "nome do projeto ou área", "sim": 85, "kind": "Problema encontrado|Solução aplicada|Contexto relevante", "detail": "descrição em 1 frase", "result": "resultado em 1 frase", "tc": "var(--clay)" }
+    { "name": "nome da task ou lista", "produto": "nome do produto/sistema (use o nome da pasta ou domínio maior inferido do nome das tasks)", "modulo": "nome do módulo ou subdomínio (use o nome da pasta se disponível, senão null)", "sprint": "nome da lista se for uma sprint (ex: 'Sprint 12'), senão null", "sim": 85, "kind": "Problema encontrado|Solução aplicada|Contexto relevante", "detail": "descrição em 1 frase", "result": "resultado em 1 frase", "tc": "var(--clay)" }
   ],
   "people": [
     { "name": "nome completo", "role": "cargo ou área", "initials": "XX" }
@@ -103,7 +107,7 @@ Retorne APENAS JSON válido, sem markdown, no formato exato:
 }
 
 Regras:
-- "projects": máximo 3; use EXATAMENTE o nome da task, lista ou space como "name" — nunca invente um nome; sim entre 60-99 baseado na relevância real; tc="var(--clay)" para problemas/incidentes, tc="var(--sage)" para soluções; só inclua um card se houver uma task real correspondente na lista acima
+- "projects": máximo 3; sim entre 60-99 baseado na relevância real; tc="var(--clay)" para problemas/incidentes, tc="var(--sage)" para soluções; só inclua um card se houver uma task real correspondente na lista acima; "produto" deve ser o sistema/produto maior (use o nome da pasta quando disponível); "modulo" é o subdomínio ou módulo funcional (use pasta mais específica ou null); "sprint" é o nome da lista apenas se for uma sprint (contém "Sprint" ou número de versão), senão null
 - "people": use SOMENTE nomes que aparecem no campo "responsáveis" das tasks acima, máximo 4; se não houver, retorne array vazio
 - "teams": times ou áreas impactadas — use SOMENTE nomes de equipes, áreas ou departamentos que aparecem nas tasks (ex: "Time de Dados", "Backend", "Produto"). Nunca inclua nomes de sprints, listas, datas ou versões. Se não houver times identificáveis, retorne array vazio
 - "lessons": máximo 4 lições concretas e diretas derivadas das tasks — sem generalizar além do que está escrito

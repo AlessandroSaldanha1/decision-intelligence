@@ -90,7 +90,8 @@ const memoryMetrics = [
 
 // ─── Insights + Plan types ────────────────────────────────────────────────────
 interface InsightsProject {
-  name: string; sim: number; kind: string; detail: string; result: string; tc: string;
+  name: string; produto: string; modulo: string | null; sprint: string | null;
+  sim: number; kind: string; detail: string; result: string; tc: string;
 }
 interface InsightsPerson { name: string; role: string; initials: string; }
 interface InsightsData {
@@ -1632,63 +1633,40 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
             }}
           >
             {/* Top row */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--mono)',
-                    fontSize: 10.5,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: 'var(--ink-3)',
-                  }}
-                >
-                  Projeto
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Produto */}
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
+                  Produto
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--serif)',
-                    fontSize: 24,
-                    letterSpacing: '-0.01em',
-                    lineHeight: 1.05,
-                    marginTop: 4,
-                    color: 'var(--ink)',
-                  }}
-                >
-                  {p.name}
+                <div style={{ fontFamily: 'var(--serif)', fontSize: 22, letterSpacing: '-0.01em', lineHeight: 1.1, marginTop: 3, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {p.produto || p.name}
                 </div>
+                {/* Módulo (when available) */}
+                {p.modulo && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
+                      Módulo
+                    </div>
+                    <div style={{ fontFamily: 'var(--serif)', fontSize: 15, lineHeight: 1.2, marginTop: 2, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {p.modulo}
+                    </div>
+                  </div>
+                )}
+                {/* Sprint (secondary) */}
+                {p.sprint && (
+                  <div style={{ marginTop: 8, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+                    {p.sprint}
+                  </div>
+                )}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div
-                  style={{
-                    fontFamily: 'var(--serif)',
-                    fontSize: 30,
-                    lineHeight: 1,
-                    letterSpacing: '-0.02em',
-                    color: p.tc,
-                  }}
-                >
+                <div style={{ fontFamily: 'var(--serif)', fontSize: 30, lineHeight: 1, letterSpacing: '-0.02em', color: p.tc }}>
                   {p.sim}%
                 </div>
                 <div
                   title="Estimativa gerada pelo assistente IA sobre o quanto esse projeto se relaciona com a demanda atual, com base no conteúdo das tasks encontradas no ClickUp."
-                  style={{
-                    fontFamily: 'var(--mono)',
-                    fontSize: 9.5,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: 'var(--ink-3)',
-                    marginTop: 2,
-                    cursor: 'help',
-                    borderBottom: '1px dashed var(--ink-3)',
-                  }}
+                  style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 2, cursor: 'help', borderBottom: '1px dashed var(--ink-3)' }}
                 >
                   similaridade
                 </div>
