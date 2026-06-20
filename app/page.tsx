@@ -1379,6 +1379,19 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
   );
 }
 
+const loadingQuips = [
+  'Vasculhando o ClickUp como se fosse o baú do tesouro…',
+  'Perguntando ao assistente IA o que ele acha disso tudo…',
+  'Lendo 48 mil comentários. Sim, todos.',
+  'Consultando o histórico de decisões (algumas delas, questionáveis)…',
+  'Cruzando projetos antigos com a sua demanda. Paciência.',
+  'O assistente IA está pensando. Ele é rápido, mas não milagroso.',
+  'Encontrando padrões que ninguém sabia que existiam…',
+  'Analisando incidentes passados pra você não repetir os mesmos erros.',
+  'Traduzindo caos organizacional em estrutura. Quase lá.',
+  'Buscando quem já resolveu algo parecido antes (alguém sempre já resolveu).',
+];
+
 function InsightsScreen({ go, demand, insightsState, insights }: {
   go: (s: Screen) => void;
   demand: string;
@@ -1386,6 +1399,15 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
   insights: InsightsData | null;
 }) {
   const loading = insightsState === 'loading';
+  const [quipIndex, setQuipIndex] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setQuipIndex((i) => (i + 1) % loadingQuips.length);
+    }, 2800);
+    return () => clearInterval(interval);
+  }, [loading]);
   const c = insights?.counts;
   const countsData = [
     { n: c ? String(c.projetos) : null, color: 'var(--clay)', label: 'projetos' },
@@ -1423,6 +1445,27 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
           ● ENCONTRADO
         </span>
       </div>
+
+      {/* Loading quip banner */}
+      {loading && (
+        <div style={{
+          margin: '0 0 28px',
+          padding: '14px 20px',
+          border: '1px solid var(--line)',
+          borderRadius: 10,
+          background: 'var(--paper-2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}>
+          <div style={{ position: 'relative', width: 18, height: 18, flexShrink: 0 }}>
+            <div style={{ position: 'absolute', inset: 0, border: '2px solid var(--line)', borderTopColor: 'var(--clay)', borderRadius: '50%', animation: 'di-spin .9s linear infinite' }} />
+          </div>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--ink-2)', letterSpacing: '0.01em' }}>
+            {loadingQuips[quipIndex]}
+          </span>
+        </div>
+      )}
 
       {/* Hero */}
       <h1
