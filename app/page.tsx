@@ -70,7 +70,8 @@ const intelGen = [
   { n: '88%', l: 'redução de ambiguidades' },
 ];
 
-const sources = ['ClickUp', 'Jira', 'Confluence', 'Notion', 'Reuniões', 'Comentários'];
+const connectedSources = ['ClickUp'];
+const futureSources = ['Jira', 'Confluence', 'Notion', 'Reuniões', 'Comentários'];
 
 const kbDefs = [
   { key: 'tasks', label: 'Tasks e Sprints' },
@@ -689,16 +690,36 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
           Fontes conectadas
         </span>
         <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-          {sources.map((src) => (
+          {connectedSources.map((src) => (
             <span
               key={src}
               style={{
                 fontFamily: 'var(--mono)',
                 fontSize: 12,
-                color: 'var(--ink-2)',
+                color: 'var(--ink)',
+                border: '1px solid rgba(74,222,128,0.45)',
+                borderRadius: 100,
+                padding: '5px 13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span style={{ color: 'var(--sage)', fontSize: 8 }}>●</span>
+              {src}
+            </span>
+          ))}
+          {futureSources.map((src) => (
+            <span
+              key={src}
+              style={{
+                fontFamily: 'var(--mono)',
+                fontSize: 12,
+                color: 'var(--ink-3)',
                 border: '1px solid var(--line)',
                 borderRadius: 100,
                 padding: '5px 13px',
+                opacity: 0.55,
               }}
             >
               {src}
