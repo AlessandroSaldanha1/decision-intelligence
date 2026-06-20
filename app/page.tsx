@@ -2530,8 +2530,8 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
   );
 }
 
-function PlanScreen({ go, planState, plan }: { go: (s: Screen) => void; planState: 'idle' | 'loading' | 'done'; plan: PlanData | null }) {
-  const loading = planState === 'loading';
+function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: Screen) => void; planState: 'idle' | 'loading' | 'done'; plan: PlanData | null; planError: string | null; onRetryPlan: () => void }) {
+  const loading = planState !== 'done';
   const d = plan;
   return (
     <div className="di-scrn" style={{ padding: '56px var(--pad-x) 90px', maxWidth: 1060 }}>
@@ -2576,6 +2576,42 @@ function PlanScreen({ go, planState, plan }: { go: (s: Screen) => void; planStat
       >
         Transforme a especificação gerada em trabalho executável no ClickUp.
       </p>
+
+      {/* Error state */}
+      {!loading && (planError || !d) && (
+        <div style={{
+          border: '1px solid rgba(220,50,50,0.3)',
+          background: 'rgba(220,50,50,0.06)',
+          borderRadius: 16,
+          padding: '32px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          maxWidth: 640,
+          marginBottom: 32,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 22 }}>⚠</span>
+            <span style={{ fontFamily: 'var(--serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 600 }}>
+              Falha na geração do plano
+            </span>
+          </div>
+          <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.5, margin: 0 }}>
+            {planError ?? 'Ocorreu um erro inesperado. Verifique o console para mais detalhes.'}
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="di-btn-primary" style={{ ...s.btn, ...s.btnPrimary }} onClick={onRetryPlan}>
+              Tentar gerar novamente
+            </button>
+            <button className="di-btn-ghost" style={{ ...s.btn, ...s.btnGhost }} onClick={() => go('artifacts')}>
+              ← Voltar para Artefatos
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content (only when plan loaded successfully) */}
+      {(loading || d) && (<>
 
       {/* Epic Card */}
       <div
@@ -2955,6 +2991,8 @@ function PlanScreen({ go, planState, plan }: { go: (s: Screen) => void; planStat
           Preview no ClickUp <span style={{ fontFamily: 'var(--mono)' }}>→</span>
         </button>
       </div>
+
+      </>)}
     </div>
   );
 }
@@ -3898,6 +3936,7 @@ export default function DIPage() {
   const [insights, setInsights] = useState<InsightsData | null>(null);
   const [planState, setPlanState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [plan, setPlan] = useState<PlanData | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   // Save publishConfig to localStorage when changed
   useEffect(() => {
@@ -3993,19 +4032,39 @@ export default function DIPage() {
     setArtifactsState('done');
   }, [demand, workspaceId, analysis]);
 
-  const runPlan = useCallback(() => {
+  const runPlan = useCallback(async () => {
     setPlanState('loading');
     setPlan(null);
-    fetch('/api/platform/plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ demand, workspaceId, artifacts }),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: PlanData | null) => { if (data) setPlan(data); })
-      .catch(() => {})
-      .finally(() => setPlanState('done'));
-  }, [demand, workspaceId, artifacts]);
+    setPlanError(null);
+    try {
+      const [res] = await Promise.all([
+        fetch('/api/platform/plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ demand, workspaceId, artifacts, analysis }),
+        }),
+        new Promise<void>((r) => setTimeout(r, 1400)),
+      ]);
+      if (res.ok) {
+        const data = (await res.json()) as PlanData;
+        if (data.epic && Array.isArray(data.groups) && data.groups.length > 0) {
+          setPlan(data);
+        } else {
+          console.error('[runPlan] Invalid plan structure received:', data);
+          setPlanError('Plano gerado com estrutura inválida. Tente novamente.');
+        }
+      } else {
+        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg = errData.error ?? `Erro ${res.status} ao gerar plano.`;
+        console.error('[runPlan] API error:', res.status, msg);
+        setPlanError(msg);
+      }
+    } catch (err) {
+      console.error('[runPlan] Network error:', err);
+      setPlanError('Erro de rede ao chamar o serviço de plano.');
+    }
+    setPlanState('done');
+  }, [demand, workspaceId, artifacts, analysis]);
 
   const go = useCallback(
     (s: Screen) => {
@@ -4027,6 +4086,7 @@ export default function DIPage() {
     setArtifactsError(null);
     setPlanState('idle');
     setPlan(null);
+    setPlanError(null);
     setInsightsState('loading');
     setInsights(null);
     go('searching');
@@ -4131,7 +4191,7 @@ export default function DIPage() {
           />
         );
       case 'plan':
-        return <PlanScreen go={go} planState={planState} plan={plan} />;
+        return <PlanScreen go={go} planState={planState} plan={plan} planError={planError} onRetryPlan={() => { setPlanState('idle'); runPlan(); }} />;
       case 'preview':
         return (
           <PreviewScreen

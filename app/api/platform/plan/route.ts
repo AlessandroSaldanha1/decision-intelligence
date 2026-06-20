@@ -14,6 +14,11 @@ interface ArtifactsInput {
   subtasks?: string[]
 }
 
+interface AnalysisSection {
+  q: string
+  a: string
+}
+
 interface PlanGroup {
   frente: string
   items: string[]
@@ -29,39 +34,34 @@ interface PlanData {
   reuse: { n: string; l: string }[]
 }
 
-const FALLBACK: PlanData = {
-  epic: 'Entrega em construção',
-  usTitle: 'Carregando plano de entrega…',
-  usDesc: 'O plano será gerado com base na demanda e no conhecimento organizacional encontrado.',
-  groups: [
-    { frente: 'Backend', items: ['Implementar lógica de negócio', 'Criar endpoints necessários'] },
-    { frente: 'Frontend', items: ['Criar interface de usuário', 'Integrar com o backend'] },
-    { frente: 'QA', items: ['Criar cenários de teste', 'Validar critérios de aceite'] },
-    { frente: 'Produto', items: ['Validar regras de negócio', 'Alinhar com stakeholders'] },
-  ],
-  deps: ['API de backend', 'Banco de dados'],
-  risk: { score: 50, label: 'Médio' },
-  reuse: [
-    { n: '0', l: 'projetos semelhantes usados' },
-    { n: '0', l: 'incidentes históricos considerados' },
-    { n: '0', l: 'regras organizacionais aplicadas' },
-    { n: '0', l: 'soluções validadas reutilizadas' },
-  ],
-}
-
-function buildContext(tasks: ClickUpTask[], artifacts: ArtifactsInput | null): string {
+function buildContext(
+  tasks: ClickUpTask[],
+  artifacts: ArtifactsInput | null,
+  analysis: AnalysisSection[] | null,
+): string {
   const parts: string[] = []
+
+  if (analysis?.length) {
+    const analysisText = analysis
+      .filter((s) => s.a)
+      .map((s) => `${s.q}\n${s.a}`)
+      .join('\n\n')
+    parts.push(`Análise realizada:\n${analysisText}`)
+  }
+
   if (artifacts?.userStory) parts.push(`User Story: ${artifacts.userStory}`)
   if (artifacts?.bdd?.length) parts.push(`BDD: ${artifacts.bdd.join(' / ')}`)
   if (artifacts?.dependencies?.length) parts.push(`Dependências identificadas: ${artifacts.dependencies.join(', ')}`)
+  if (artifacts?.subtasks?.length) parts.push(`Subtarefas identificadas: ${artifacts.subtasks.join(', ')}`)
+
   if (tasks.length) {
     parts.push('Tasks similares no ClickUp:')
-    tasks.slice(0, 8).forEach((t, i) => {
+    tasks.slice(0, 6).forEach((t, i) => {
       const status = t.status?.status ?? 'desconhecido'
-      parts.push(`${i + 1}. [${status}] ${t.name}${t.description ? ' — ' + t.description.slice(0, 150) : ''}`)
+      parts.push(`${i + 1}. [${status}] ${t.name}${t.description ? ' — ' + t.description.slice(0, 120) : ''}`)
     })
   }
-  return parts.join('\n')
+  return parts.join('\n\n')
 }
 
 export async function POST(req: NextRequest) {
@@ -69,9 +69,14 @@ export async function POST(req: NextRequest) {
     demand: string
     workspaceId?: string
     artifacts?: ArtifactsInput
+    analysis?: AnalysisSection[]
   }
   const demand = cleanTranscript(body.demand ?? '')
-  const { workspaceId, artifacts } = body
+  const { workspaceId, artifacts, analysis } = body
+
+  if (isClaudeMockMode()) {
+    return NextResponse.json({ error: 'Claude não configurado (ANTHROPIC_API_KEY ausente)' }, { status: 503 })
+  }
 
   let tasks: ClickUpTask[] = []
   if (workspaceId && !isMockMode()) {
@@ -84,25 +89,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (isClaudeMockMode()) return NextResponse.json(FALLBACK)
-
-  const context = buildContext(tasks, artifacts ?? null)
+  const context = buildContext(tasks, artifacts ?? null, analysis ?? null)
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Você é um analista sênior de produto. Gere um plano de entrega para a demanda abaixo.
+  const prompt = `Você é um analista sênior de produto. Gere um plano de entrega baseado exclusivamente no contexto abaixo.
 
-Demanda: "${demand}"
+Demanda: "${demand.slice(0, 800)}"
 
-Contexto:
 ${context}
 
-ATENÇÃO: Baseie o plano EXCLUSIVAMENTE na demanda e no contexto acima. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
+ATENÇÃO: Baseie o plano EXCLUSIVAMENTE no conteúdo acima. Nunca mencione tópicos ausentes do contexto (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses).
 
-Retorne APENAS JSON válido, sem markdown, no formato:
+Retorne APENAS JSON válido sem markdown:
 {
-  "epic": "nome curto do épico",
-  "usTitle": "título da user story principal (Como... eu quero... para...)",
-  "usDesc": "descrição mais longa da user story em 2-3 frases",
+  "epic": "nome curto do épico (5-8 palavras)",
+  "usTitle": "Como [perfil], eu quero [ação] para [objetivo]",
+  "usDesc": "Descrição expandida da user story em 2-3 frases",
   "groups": [
     { "frente": "Backend", "items": ["item 1", "item 2", "item 3"] },
     { "frente": "Frontend", "items": ["item 1", "item 2", "item 3"] },
@@ -112,34 +114,46 @@ Retorne APENAS JSON válido, sem markdown, no formato:
   "deps": ["dep1", "dep2", "dep3"],
   "risk": { "score": 65, "label": "Médio" },
   "reuse": [
-    { "n": "3", "l": "projetos semelhantes usados" },
-    { "n": "2", "l": "incidentes históricos considerados" },
-    { "n": "4", "l": "regras organizacionais aplicadas" },
+    { "n": "2", "l": "projetos semelhantes considerados" },
+    { "n": "1", "l": "incidentes históricos considerados" },
+    { "n": "3", "l": "regras organizacionais aplicadas" },
     { "n": "1", "l": "soluções validadas reutilizadas" }
   ]
 }
 
-Regras:
-- risk.score: 0-100, risk.label: "Baixo" (<40), "Médio" (40-70), "Alto" (>70)
-- 3-4 itens por grupo
-- 3-5 dependências
-- reuse.n: número real baseado no contexto das tasks encontradas
-- Tudo em português`
+Regras: risk.score 0-100; label "Baixo" (<40), "Médio" (40-70), "Alto" (>70); 3-4 itens por grupo; tudo em português.`
 
   try {
     const msg = await client.messages.create({
       model: env.anthropic.model,
-      max_tokens: 1500,
+      max_tokens: 1600,
       messages: [{ role: 'user', content: prompt }],
     })
     const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
+    console.log('[plan] Claude raw response (first 300):', text.slice(0, 300))
+
     const match = text.match(/\{[\s\S]*\}/)
-    const data = match ? (JSON.parse(match[0]) as PlanData) : null
-    if (data && data.epic && Array.isArray(data.groups)) return NextResponse.json(data)
-    console.error('[plan] Claude returned invalid JSON:', text.slice(0, 200))
-    return NextResponse.json(FALLBACK)
+    if (!match) {
+      console.error('[plan] No JSON found in Claude response:', text.slice(0, 500))
+      return NextResponse.json({ error: 'Claude não retornou JSON válido' }, { status: 502 })
+    }
+
+    let data: PlanData
+    try {
+      data = JSON.parse(match[0]) as PlanData
+    } catch (parseErr) {
+      console.error('[plan] JSON.parse failed:', parseErr, '| raw:', match[0].slice(0, 300))
+      return NextResponse.json({ error: 'Falha ao parsear resposta do Claude' }, { status: 502 })
+    }
+
+    if (!data.epic || !Array.isArray(data.groups) || data.groups.length === 0) {
+      console.error('[plan] Invalid structure from Claude:', JSON.stringify(data).slice(0, 300))
+      return NextResponse.json({ error: 'Estrutura do plano inválida retornada pelo Claude' }, { status: 502 })
+    }
+
+    return NextResponse.json(data)
   } catch (err) {
     console.error('[plan] Claude API error:', err)
-    return NextResponse.json(FALLBACK)
+    return NextResponse.json({ error: 'Erro na chamada ao Claude' }, { status: 502 })
   }
 }
