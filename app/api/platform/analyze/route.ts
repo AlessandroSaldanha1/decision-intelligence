@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { env, isClaudeMockMode, isMockMode } from '@/lib/config/env'
 import { ClickUpService } from '@/services/clickup/clickup.service'
+import { cleanTranscript } from '@/lib/utils/clean-transcript'
+import { getTranscriptContext } from '@/lib/utils/summarize-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
 const FALLBACK: { sections: { q: string; a: string }[] } = {
   sections: [
-    { q: 'O que estamos esquecendo?', a: 'A justificativa obrigatória e o impacto em entidades filhas. Em casos similares (91%), a vigência alterou o cálculo de PL/Cota a jusante.' },
-    { q: 'O que pode dar errado?', a: 'Recálculo indevido de PL/Cota em produção e alteração de fundos encerrados — exatamente o incidente registrado no projeto Atlas Fundos.' },
-    { q: 'Quem será impactado?', a: 'Operação e Compliance (trilha de auditoria), além de Produto e Engenharia no recálculo de cotas e validações.' },
-    { q: 'Quais erros já aconteceram antes?', a: 'Incidente em produção no Atlas Fundos e falha de auditoria na Previdência pela ausência de justificativa obrigatória.' },
-    { q: 'Quais soluções já funcionaram?', a: 'A análise de impacto antes da aplicação, usada no projeto Cadastro, reduziu chamados; auditar alterações sensíveis sustentou a conformidade.' },
+    { q: 'O que estamos esquecendo?', a: 'Não foi possível gerar a análise. Verifique a conexão e tente novamente.' },
+    { q: 'O que pode dar errado?', a: '' },
+    { q: 'Quem será impactado?', a: '' },
+    { q: 'Quais erros já aconteceram antes?', a: '' },
+    { q: 'Quais soluções já funcionaram?', a: '' },
   ],
 }
 
@@ -29,40 +31,47 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { demand, workspaceId } = (await req.json()) as { demand: string; workspaceId?: string }
+  const body = (await req.json()) as { demand: string; workspaceId?: string }
+  const rawDemand = cleanTranscript(body.demand ?? '')
+  const { workspaceId } = body
 
   if (isClaudeMockMode()) {
     return NextResponse.json(FALLBACK)
   }
+
+  // Summarize long transcripts to avoid context dilution
+  const demand = await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
 
   // Build real organizational context from ClickUp
   let orgContext = ''
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
-      const tasks = await svc.searchTasks(workspaceId, demand)
+      const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
+      const tasks = await svc.searchTasks(workspaceId, searchQuery)
       orgContext = buildTaskContext(tasks)
-    } catch {
+    } catch (err) {
+      console.error('[analyze] ClickUp search failed:', err)
       orgContext = 'Erro ao buscar histórico organizacional no ClickUp.'
     }
   } else {
-    orgContext = [
-      '1. Projeto Atlas Fundos: Mudança de vigência impactou PL/Cota → Incidente em produção.',
-      '2. Projeto Previdência: Ausência de justificativa obrigatória → Falha de auditoria.',
-      '3. Projeto Cadastro: Análise de impacto antes da aplicação → Redução de chamados.',
-    ].join('\n')
+    orgContext = 'Nenhum workspace conectado — análise baseada apenas na demanda.'
   }
 
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
   const prompt = `Você é um analista sênior de uma plataforma de Inteligência Organizacional.
-Demanda nova: "${demand}".
+
+Demanda nova: "${demand}"
+
 Conhecimento organizacional encontrado no ClickUp:
 ${orgContext}
 
-Produza uma análise de contexto baseada nas tasks acima. Responda APENAS com JSON válido, sem markdown, no formato exato:
+ATENÇÃO: Baseie suas respostas EXCLUSIVAMENTE na demanda acima e no contexto do ClickUp fornecido. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
+
+Produza uma análise de contexto baseada no conteúdo real acima. Responda APENAS com JSON válido, sem markdown, no formato exato:
 {"sections":[{"q":"O que estamos esquecendo?","a":"..."},{"q":"O que pode dar errado?","a":"..."},{"q":"Quem será impactado?","a":"..."},{"q":"Quais erros já aconteceram antes?","a":"..."},{"q":"Quais soluções já funcionaram?","a":"..."}]}
-Cada "a" deve ter 1-2 frases específicas em português, fundamentadas no conhecimento organizacional acima.`
+Cada "a" deve ter 1-2 frases específicas em português, fundamentadas no conteúdo fornecido.`
 
   try {
     const message = await client.messages.create({
@@ -78,8 +87,10 @@ Cada "a" deve ter 1-2 frases específicas em português, fundamentadas no conhec
     if (data && Array.isArray(data.sections) && data.sections.length) {
       return NextResponse.json(data)
     }
+    console.error('[analyze] Claude returned invalid JSON:', text.slice(0, 200))
     return NextResponse.json(FALLBACK)
-  } catch {
+  } catch (err) {
+    console.error('[analyze] Claude API error:', err)
     return NextResponse.json(FALLBACK)
   }
 }

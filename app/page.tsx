@@ -110,15 +110,7 @@ interface PlanData {
 }
 
 
-const previewSubtasks = [
-  { group: 'Backend', name: 'Análise de impacto' },
-  { group: 'Backend', name: 'Aplicação de vigência' },
-  { group: 'Backend', name: 'Auditoria' },
-  { group: 'Frontend', name: 'Modal de alteração' },
-  { group: 'Frontend', name: 'Lista de impactos' },
-  { group: 'QA', name: 'Cenários BDD' },
-  { group: 'Produto', name: 'Validação de regra' },
-];
+const previewSubtasks: { group: string; name: string }[] = [];
 
 const previewSections = [
   'Contexto de negócio',
@@ -156,60 +148,20 @@ const publishStepLabels = [
 ];
 
 const analysisFallback: AnalysisSection[] = [
-  {
-    q: 'O que estamos esquecendo?',
-    a: 'A justificativa obrigatória e o impacto em entidades filhas. Em casos similares (91%), a vigência alterou o cálculo de PL/Cota a jusante.',
-  },
-  {
-    q: 'O que pode dar errado?',
-    a: 'Recálculo indevido de PL/Cota em produção e alteração de fundos encerrados — exatamente o incidente registrado no projeto Atlas Fundos.',
-  },
-  {
-    q: 'Quem será impactado?',
-    a: 'Operação e Compliance (trilha de auditoria), além de Produto e Engenharia no recálculo de cotas e validações.',
-  },
-  {
-    q: 'Quais erros já aconteceram antes?',
-    a: 'Incidente em produção no Atlas Fundos e falha de auditoria na Previdência pela ausência de justificativa obrigatória.',
-  },
-  {
-    q: 'Quais soluções já funcionaram?',
-    a: 'A análise de impacto antes da aplicação, usada no projeto Cadastro, reduziu chamados; auditar alterações sensíveis sustentou a conformidade.',
-  },
+  { q: 'O que estamos esquecendo?', a: 'Análise não disponível. Verifique a conexão e tente novamente.' },
+  { q: 'O que pode dar errado?', a: '' },
+  { q: 'Quem será impactado?', a: '' },
+  { q: 'Quais erros já aconteceram antes?', a: '' },
+  { q: 'Quais soluções já funcionaram?', a: '' },
 ];
 
 const artifactsFallback: ArtifactsData = {
-  userStory:
-    'Como analista de operações, eu quero alterar a vigência de um fundo exigindo justificativa e análise de impacto, para que mudanças sensíveis sejam rastreáveis e não gerem incidentes de PL/Cota.',
-  bdd: [
-    'Dado um fundo ativo com vigência vigente',
-    'Quando o usuário solicita alteração de vigência sem justificativa',
-    'Então o sistema bloqueia a operação e exige justificativa obrigatória',
-    'E registra autor, data e motivo na trilha de auditoria',
-  ],
-  testCases: [
-    'Bloquear alteração de vigência em fundo encerrado',
-    'Exigir justificativa obrigatória antes de confirmar',
-    'Exibir análise de impacto em entidades filhas (PL/Cota)',
-    'Registrar a alteração na trilha de auditoria',
-  ],
-  dod: [
-    'Justificativa obrigatória validada',
-    'Análise de impacto exibida antes da confirmação',
-    'Trilha de auditoria completa e testável',
-    'Testes de regressão de PL/Cota aprovados',
-  ],
-  dependencies: [
-    'Serviço de cálculo de PL/Cota',
-    'Módulo de auditoria',
-    'Catálogo de entidades filhas',
-  ],
-  subtasks: [
-    'Bloquear fundos encerrados',
-    'Campo de justificativa obrigatório',
-    'Tela de pré-visualização de impacto',
-    'Evento de auditoria de alteração',
-  ],
+  userStory: 'Artefatos não disponíveis. Verifique a conexão e tente novamente.',
+  bdd: [],
+  testCases: [],
+  dod: [],
+  dependencies: [],
+  subtasks: [],
 };
 
 const DEFAULT_PUBLISH_CONFIG: PublishConfig = {
@@ -428,6 +380,8 @@ interface PlanProps {
 
 interface PreviewProps {
   demand: string;
+  artifacts: ArtifactsData | null;
+  analysis: AnalysisSection[] | null;
   publishConfig: PublishConfig;
   setPublishConfig: React.Dispatch<React.SetStateAction<PublishConfig>>;
   go: GoFn;
@@ -849,7 +803,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
           onChange={(e) => setDemand(e.target.value)}
           onFocus={() => setTextareaFocused(true)}
           onBlur={() => setTextareaFocused(false)}
-          placeholder="Ex: Permitir alteração de vigência"
+          placeholder="Descreva a demanda ou cole a transcrição da reunião…"
           style={{
             width: '100%',
             minHeight: 120,
@@ -893,7 +847,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
         >
           CONTEXTO
         </span>
-        {['Domínio · Fundos', 'Tipo · Mudança de regra', 'Squad · Plataforma'].map((pill) => (
+        {['Tipo · Nova demanda', 'Squad · Plataforma'].map((pill) => (
           <span
             key={pill}
             style={{
@@ -2960,7 +2914,7 @@ function PlanScreen({ go, planState, plan }: { go: (s: Screen) => void; planStat
   );
 }
 
-function PreviewScreen({ demand, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
+function PreviewScreen({ demand, artifacts, analysis, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
 
@@ -2969,23 +2923,15 @@ function PreviewScreen({ demand, publishConfig, setPublishConfig, go, doPublish 
   const connColor = connReal ? 'var(--sage)' : 'var(--ochre)';
   const connBg = connReal ? 'rgba(30,122,92,0.12)' : 'rgba(138,100,24,0.12)';
 
-  const previewComment = `Análise crítica gerada pelo Decision Intelligence.
+  const previewComment = analysis?.length
+    ? `Análise crítica gerada pelo Decision Intelligence.\n\nDemanda: ${demand}\n\n` +
+      analysis.map((s) => `${s.q}\n${s.a}`).filter((s) => !s.endsWith('\n')).join('\n\n')
+    : `Análise crítica gerada pelo Decision Intelligence.\n\nDemanda: ${demand}`;
 
-Ambiguidades: escopo de "vigência" não distingue claramente data de início e fim; comportamento para entidades filhas (subclasses) indefinido.
-Riscos: inconsistência em PL/Cota · histórico incompleto · propagação indevida · falha de auditoria.
-Stakeholders impactados: Operação, Compliance, Produto, Engenharia.
-Score de risco: 82/100 (Alto).
-Contextos históricos usados: Atlas Fundos (incidente de PL/Cota), Previdência (falha de auditoria), Cadastro (análise de impacto reduziu chamados).`;
-
-  const previewSubtasksFull = [
-    { group: 'Backend', name: 'Análise de impacto' },
-    { group: 'Backend', name: 'Aplicação de vigência' },
-    { group: 'Backend', name: 'Auditoria' },
-    { group: 'Frontend', name: 'Modal de alteração' },
-    { group: 'Frontend', name: 'Lista de impactos' },
-    { group: 'QA', name: 'Cenários BDD' },
-    { group: 'Produto', name: 'Validação de regra' },
-  ];
+  const groups = ['Backend', 'Frontend', 'QA', 'Produto'];
+  const previewSubtasksFull: { group: string; name: string }[] = artifacts?.subtasks?.length
+    ? artifacts.subtasks.map((name, i) => ({ group: groups[i % groups.length], name }))
+    : [];
 
   const previewSectionsFull = [
     'Contexto de negócio',
@@ -3071,7 +3017,9 @@ Contextos históricos usados: Atlas Fundos (incidente de PL/Cota), Previdência 
             <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 6 }}>
               <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--clay)', flexShrink: 0 }} />
               <span style={{ fontFamily: 'var(--serif)', fontSize: 21, letterSpacing: '-0.01em', color: 'var(--ink)', flex: 1 }}>
-                Alteração de Vigência de Classe
+                {artifacts?.userStory
+                  ? artifacts.userStory.replace(/^Como [^,]+, eu quero /i, '').split(' para ')[0].slice(0, 80)
+                  : demand.slice(0, 80) || 'Nova demanda'}
               </span>
               <span style={{
                 fontFamily: 'var(--mono)',
@@ -3880,7 +3828,7 @@ function getInitialPublishConfig(): PublishConfig {
 export default function DIPage() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState<Screen>('dashboard');
-  const [demand, setDemand] = useState('Permitir alteração de vigência');
+  const [demand, setDemand] = useState('');
   const [workspace, setWorkspace] = useState('ANBIMA');
   const [workspaceId, setWorkspaceId] = useState('');
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
@@ -4014,6 +3962,13 @@ export default function DIPage() {
   );
 
   const runSearch = useCallback(() => {
+    // Reset all generated states so a new demand always triggers fresh generation
+    setAnalysisState('idle');
+    setAnalysis(null);
+    setArtifactsState('idle');
+    setArtifacts(null);
+    setPlanState('idle');
+    setPlan(null);
     setInsightsState('loading');
     setInsights(null);
     go('searching');
@@ -4117,6 +4072,8 @@ export default function DIPage() {
         return (
           <PreviewScreen
             demand={demand}
+            artifacts={artifacts}
+            analysis={analysis}
             publishConfig={publishConfig}
             setPublishConfig={setPublishConfig}
             go={go}

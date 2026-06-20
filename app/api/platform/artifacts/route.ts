@@ -2,35 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { env, isClaudeMockMode, isMockMode } from '@/lib/config/env'
 import { ClickUpService } from '@/services/clickup/clickup.service'
+import { cleanTranscript } from '@/lib/utils/clean-transcript'
+import { getTranscriptContext } from '@/lib/utils/summarize-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
 const FALLBACK = {
-  userStory: 'Como analista de operações, eu quero alterar a vigência de um fundo exigindo justificativa e análise de impacto, para que mudanças sensíveis sejam rastreáveis e não gerem incidentes de PL/Cota.',
-  bdd: [
-    'Dado um fundo ativo com vigência vigente',
-    'Quando o usuário solicita alteração de vigência sem justificativa',
-    'Então o sistema bloqueia a operação e exige justificativa obrigatória',
-    'E registra autor, data e motivo na trilha de auditoria',
-  ],
-  testCases: [
-    'Bloquear alteração de vigência em fundo encerrado',
-    'Exigir justificativa obrigatória antes de confirmar',
-    'Exibir análise de impacto em entidades filhas (PL/Cota)',
-    'Registrar a alteração na trilha de auditoria',
-  ],
-  dod: [
-    'Justificativa obrigatória validada',
-    'Análise de impacto exibida antes da confirmação',
-    'Trilha de auditoria completa e testável',
-    'Testes de regressão de PL/Cota aprovados',
-  ],
-  dependencies: ['Serviço de cálculo de PL/Cota', 'Módulo de auditoria', 'Catálogo de entidades filhas'],
-  subtasks: [
-    'Bloquear fundos encerrados',
-    'Campo de justificativa obrigatório',
-    'Tela de pré-visualização de impacto',
-    'Evento de auditoria de alteração',
-  ],
+  userStory: 'Não foi possível gerar os artefatos. Verifique a conexão e tente novamente.',
+  bdd: ['Dado que a demanda foi processada', 'Quando o sistema retornar os artefatos', 'Então eles estarão disponíveis aqui'],
+  testCases: ['Verificar geração de artefatos com conexão ativa'],
+  dod: ['Artefatos gerados com base na demanda real'],
+  dependencies: [],
+  subtasks: [],
 }
 
 function buildTaskContext(tasks: ClickUpTask[]): string {
@@ -48,34 +30,43 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { demand, workspaceId } = (await req.json()) as { demand: string; workspaceId?: string }
+  const body = (await req.json()) as { demand: string; workspaceId?: string }
+  const rawDemand = cleanTranscript(body.demand ?? '')
+  const { workspaceId } = body
 
   if (isClaudeMockMode()) {
     return NextResponse.json(FALLBACK)
   }
+
+  // Summarize long transcripts to avoid context dilution
+  const demand = await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
 
   // Build real organizational context from ClickUp
   let orgContext = ''
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
-      const tasks = await svc.searchTasks(workspaceId, demand)
+      const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
+      const tasks = await svc.searchTasks(workspaceId, searchQuery)
       orgContext = buildTaskContext(tasks)
-    } catch {
+    } catch (err) {
+      console.error('[artifacts] ClickUp search failed:', err)
       orgContext = 'Erro ao buscar histórico organizacional no ClickUp.'
     }
   } else {
-    orgContext = [
-      '1. Projeto Atlas Fundos: Mudança de vigência impactou PL/Cota → Incidente em produção.',
-      '2. Projeto Previdência: Ausência de justificativa obrigatória → Falha de auditoria.',
-      '3. Projeto Cadastro: Análise de impacto antes da aplicação → Redução de chamados.',
-    ].join('\n')
+    orgContext = 'Nenhum workspace conectado — artefatos baseados apenas na demanda.'
   }
 
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Com base na demanda "${demand}" e no histórico organizacional do ClickUp:
+  const prompt = `Você é um analista sênior de produto. Com base na demanda abaixo e no histórico organizacional do ClickUp, gere artefatos de especificação.
+
+Demanda: "${demand}"
+
+Histórico organizacional (ClickUp):
 ${orgContext}
+
+ATENÇÃO: Baseie os artefatos EXCLUSIVAMENTE na demanda acima. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
 
 Gere artefatos de especificação enriquecidos. Responda APENAS com JSON válido, sem markdown, no formato exato:
 {"userStory":"Como ... eu quero ... para ...","bdd":["Dado ...","Quando ...","Então ...","E ..."],"testCases":["...","...","...","..."],"dod":["...","...","...","..."],"dependencies":["...","...","..."],"subtasks":["...","...","...","..."]}
@@ -95,8 +86,10 @@ Tudo em português. O BDD em Gherkin (Dado/Quando/Então/E). 3 a 5 itens por lis
     if (data && data.userStory && Array.isArray(data.bdd)) {
       return NextResponse.json(data)
     }
+    console.error('[artifacts] Claude returned invalid JSON:', text.slice(0, 200))
     return NextResponse.json(FALLBACK)
-  } catch {
+  } catch (err) {
+    console.error('[artifacts] Claude API error:', err)
     return NextResponse.json(FALLBACK)
   }
 }

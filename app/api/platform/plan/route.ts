@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { env, isClaudeMockMode, isMockMode } from '@/lib/config/env'
 import { ClickUpService } from '@/services/clickup/clickup.service'
+import { cleanTranscript } from '@/lib/utils/clean-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
 interface ArtifactsInput {
@@ -64,18 +65,23 @@ function buildContext(tasks: ClickUpTask[], artifacts: ArtifactsInput | null): s
 }
 
 export async function POST(req: NextRequest) {
-  const { demand, workspaceId, artifacts } = (await req.json()) as {
+  const body = (await req.json()) as {
     demand: string
     workspaceId?: string
     artifacts?: ArtifactsInput
   }
+  const demand = cleanTranscript(body.demand ?? '')
+  const { workspaceId, artifacts } = body
 
   let tasks: ClickUpTask[] = []
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
-      tasks = await svc.searchTasks(workspaceId, demand)
-    } catch { /* ok */ }
+      const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
+      tasks = await svc.searchTasks(workspaceId, searchQuery)
+    } catch (err) {
+      console.error('[plan] ClickUp search failed:', err)
+    }
   }
 
   if (isClaudeMockMode()) return NextResponse.json(FALLBACK)
@@ -83,10 +89,14 @@ export async function POST(req: NextRequest) {
   const context = buildContext(tasks, artifacts ?? null)
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Você é um analista sênior de produto. Gere um plano de entrega para a demanda: "${demand}".
+  const prompt = `Você é um analista sênior de produto. Gere um plano de entrega para a demanda abaixo.
+
+Demanda: "${demand}"
 
 Contexto:
 ${context}
+
+ATENÇÃO: Baseie o plano EXCLUSIVAMENTE na demanda e no contexto acima. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
 
 Retorne APENAS JSON válido, sem markdown, no formato:
 {
@@ -126,8 +136,10 @@ Regras:
     const match = text.match(/\{[\s\S]*\}/)
     const data = match ? (JSON.parse(match[0]) as PlanData) : null
     if (data && data.epic && Array.isArray(data.groups)) return NextResponse.json(data)
+    console.error('[plan] Claude returned invalid JSON:', text.slice(0, 200))
     return NextResponse.json(FALLBACK)
-  } catch {
+  } catch (err) {
+    console.error('[plan] Claude API error:', err)
     return NextResponse.json(FALLBACK)
   }
 }

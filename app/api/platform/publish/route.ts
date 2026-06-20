@@ -41,15 +41,7 @@ function buildSubtasks(artifacts: ArtifactsInput | undefined) {
       name,
     }))
   }
-  return [
-    { group: 'Backend', name: 'Análise de impacto' },
-    { group: 'Backend', name: 'Aplicação de vigência' },
-    { group: 'Backend', name: 'Auditoria' },
-    { group: 'Frontend', name: 'Modal de alteração' },
-    { group: 'Frontend', name: 'Lista de impactos' },
-    { group: 'QA', name: 'Cenários BDD' },
-    { group: 'Produto', name: 'Validação de regra' },
-  ]
+  return []
 }
 
 function buildDescription(demand: string, cfg: PublishBody['publishConfig'], artifacts: ArtifactsInput | undefined): string {

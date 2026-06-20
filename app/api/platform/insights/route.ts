@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { env, isClaudeMockMode, isMockMode } from '@/lib/config/env'
 import { ClickUpService } from '@/services/clickup/clickup.service'
+import { cleanTranscript } from '@/lib/utils/clean-transcript'
+import { getTranscriptContext } from '@/lib/utils/summarize-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
 interface InsightsProject {
@@ -28,13 +30,11 @@ interface InsightsData {
 }
 
 const FALLBACK: InsightsData = {
-  projects: [
-    { name: 'Histórico relevante', sim: 85, kind: 'Contexto encontrado', detail: 'Tasks relacionadas encontradas no ClickUp', result: 'Contexto disponível', tc: 'var(--clay)' },
-  ],
+  projects: [],
   people: [],
-  teams: ['Engenharia', 'Produto'],
-  lessons: ['Verifique impactos em entidades relacionadas', 'Documente justificativas antes de alterações sensíveis'],
-  counts: { projetos: 1, incidentes: 0, regras: 2, solucoes: 0 },
+  teams: [],
+  lessons: ['Não foi possível gerar insights. Verifique a conexão e tente novamente.'],
+  counts: { projetos: 0, incidentes: 0, regras: 0, solucoes: 0 },
 }
 
 function buildTaskContext(tasks: ClickUpTask[]): string {
@@ -49,7 +49,14 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { demand, workspaceId } = (await req.json()) as { demand: string; workspaceId?: string }
+  const body = (await req.json()) as { demand: string; workspaceId?: string }
+  const rawDemand = cleanTranscript(body.demand ?? '')
+  const { workspaceId } = body
+
+  // Summarize long transcripts to avoid context dilution
+  const demand = isClaudeMockMode()
+    ? rawDemand
+    : await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
 
   let orgContext = ''
   let tasks: ClickUpTask[] = []
@@ -57,23 +64,29 @@ export async function POST(req: NextRequest) {
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
-      tasks = await svc.searchTasks(workspaceId, demand)
+      const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
+      tasks = await svc.searchTasks(workspaceId, searchQuery)
       orgContext = buildTaskContext(tasks)
-    } catch {
+    } catch (err) {
+      console.error('[insights] ClickUp search failed:', err)
       orgContext = 'Erro ao buscar histórico no ClickUp.'
     }
   } else {
-    orgContext = 'Nenhum workspace selecionado.'
+    orgContext = 'Nenhum workspace conectado.'
   }
 
   if (isClaudeMockMode()) return NextResponse.json(FALLBACK)
 
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Você é um analista de Inteligência Organizacional. Analise as tasks do ClickUp abaixo relacionadas à demanda "${demand}" e extraia insights estruturados.
+  const prompt = `Você é um analista de Inteligência Organizacional. Analise as tasks do ClickUp abaixo relacionadas à demanda e extraia insights estruturados.
 
-Tasks encontradas:
+Demanda: "${demand}"
+
+Tasks encontradas no ClickUp:
 ${orgContext}
+
+ATENÇÃO: Baseie seus insights EXCLUSIVAMENTE na demanda e nas tasks acima. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
 
 Retorne APENAS JSON válido, sem markdown, no formato exato:
 {
@@ -92,7 +105,7 @@ Regras:
 - "projects": máximo 3, com sim entre 60-99 (baseado na relevância real), tc="var(--clay)" para problemas, tc="var(--sage)" para soluções
 - "people": extraia dos assignees reais das tasks, máximo 4
 - "teams": deduza dos espaços/tags/contexto, máximo 5
-- "lessons": máximo 4 lições concretas derivadas das tasks
+- "lessons": máximo 4 lições concretas derivadas das tasks e da demanda
 - "counts.incidentes": tasks com status de erro/bug/incident
 - "counts.regras": tasks com regras de negócio identificadas
 - Tudo em português`
@@ -106,11 +119,13 @@ Regras:
     const text = msg.content[0].type === 'text' ? msg.content[0].text : ''
     const match = text.match(/\{[\s\S]*\}/)
     const data = match ? (JSON.parse(match[0]) as InsightsData) : null
-    if (data && Array.isArray(data.projects) && data.projects.length) {
+    if (data && Array.isArray(data.projects)) {
       return NextResponse.json(data)
     }
+    console.error('[insights] Claude returned invalid JSON:', text.slice(0, 200))
     return NextResponse.json(FALLBACK)
-  } catch {
+  } catch (err) {
+    console.error('[insights] Claude API error:', err)
     return NextResponse.json(FALLBACK)
   }
 }
