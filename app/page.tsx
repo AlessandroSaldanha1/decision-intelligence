@@ -147,22 +147,6 @@ const publishStepLabels = [
   'Adicionando comentário de análise…',
 ];
 
-const analysisFallback: AnalysisSection[] = [
-  { q: 'O que estamos esquecendo?', a: 'Análise não disponível. Verifique a conexão e tente novamente.' },
-  { q: 'O que pode dar errado?', a: '' },
-  { q: 'Quem será impactado?', a: '' },
-  { q: 'Quais erros já aconteceram antes?', a: '' },
-  { q: 'Quais soluções já funcionaram?', a: '' },
-];
-
-const artifactsFallback: ArtifactsData = {
-  userStory: 'Artefatos não disponíveis. Verifique a conexão e tente novamente.',
-  bdd: [],
-  testCases: [],
-  dod: [],
-  dependencies: [],
-  subtasks: [],
-};
 
 const DEFAULT_PUBLISH_CONFIG: PublishConfig = {
   listId: '',
@@ -1932,8 +1916,12 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
   );
 }
 
-function AnalysisScreen({ analysisState, analysis, go }: { analysisState: 'idle'|'loading'|'done'; analysis: {q:string;a:string}[]|null; go: (s:Screen)=>void }) {
-  const sections = analysis ?? analysisFallback;
+function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysis, insights, go }: { analysisState: 'idle'|'loading'|'done'; analysis: {q:string;a:string}[]|null; analysisError: string|null; onRetryAnalysis: ()=>void; insights: InsightsData|null; go: (s:Screen)=>void }) {
+  const sections = analysis ?? [];
+  const c = insights?.counts;
+  const statsLine = c
+    ? `Claude cruzou a demanda com o conhecimento de ${c.projetos} projeto${c.projetos !== 1 ? 's' : ''}, ${c.incidentes} incidente${c.incidentes !== 1 ? 's' : ''} e ${c.regras} regra${c.regras !== 1 ? 's' : ''} organizacional${c.regras !== 1 ? 'is' : ''}.`
+    : 'Claude analisou a demanda com base no conhecimento organizacional disponível.';
   return (
     <div className="di-scrn" style={{ padding: '56px var(--pad-x) 80px', maxWidth: 1000 }}>
       {/* Header row */}
@@ -1954,12 +1942,12 @@ function AnalysisScreen({ analysisState, analysis, go }: { analysisState: 'idle'
           style={{
             fontFamily: 'var(--mono)',
             fontSize: 11,
-            color: 'var(--ink-3)',
+            color: analysisError ? 'var(--clay)' : 'var(--ink-3)',
             letterSpacing: '0.08em',
             whiteSpace: 'nowrap',
           }}
         >
-          {analysisState === 'done' ? '● ANÁLISE CONCLUÍDA' : 'PROCESSANDO'}
+          {analysisState === 'done' ? (analysisError ? '● ERRO' : '● ANÁLISE CONCLUÍDA') : 'PROCESSANDO'}
         </span>
       </div>
 
@@ -1984,8 +1972,32 @@ function AnalysisScreen({ analysisState, analysis, go }: { analysisState: 'idle'
           margin: '0 0 40px',
         }}
       >
-        Claude cruzou a demanda com o conhecimento de 3 projetos, 2 incidentes e 4 regras organizacionais.
+        {statsLine}
       </p>
+
+      {analysisState === 'done' && analysisError && (
+        <div style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)', borderRadius: 12, padding: '20px 24px', marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18 }}>⚠</span>
+            <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Análise indisponível</span>
+          </div>
+          <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: 15 }}>{analysisError}</p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={onRetryAnalysis}
+              style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--paper-2)', fontSize: 14, cursor: 'pointer', fontFamily: 'var(--sans)' }}
+            >
+              Tentar novamente
+            </button>
+            <button
+              onClick={() => go('insights')}
+              style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--line)', background: 'transparent', fontSize: 14, cursor: 'pointer', fontFamily: 'var(--sans)', color: 'var(--ink-2)' }}
+            >
+              ← Voltar
+            </button>
+          </div>
+        </div>
+      )}
 
       {analysisState !== 'done' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -2125,7 +2137,7 @@ function AnalysisScreen({ analysisState, analysis, go }: { analysisState: 'idle'
   );
 }
 
-function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArtifacts, go }: { artifactsState: 'idle'|'loading'|'done'; artifacts: ArtifactsData|null; artifactsError: string|null; onRetryArtifacts: ()=>void; go: (s:Screen)=>void }) {
+function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArtifacts, insights, go }: { artifactsState: 'idle'|'loading'|'done'; artifacts: ArtifactsData|null; artifactsError: string|null; onRetryArtifacts: ()=>void; insights: InsightsData|null; go: (s:Screen)=>void }) {
   const bddKeywords = ['Dado', 'Quando', 'Então', 'Mas', 'E'];
 
   const colorBdd = (line: string) => {
@@ -2231,9 +2243,18 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
           }}
         />
         <span style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.4 }}>
-          Gerado utilizando conhecimento de{' '}
-          <strong>3 projetos</strong>, <strong>2 incidentes</strong> e{' '}
-          <strong>4 regras organizacionais</strong>.
+          {(() => {
+            const c = insights?.counts;
+            if (!c) return 'Gerado utilizando o conhecimento organizacional disponível.';
+            return (
+              <>
+                Gerado utilizando conhecimento de{' '}
+                <strong>{c.projetos} projeto{c.projetos !== 1 ? 's' : ''}</strong>,{' '}
+                <strong>{c.incidentes} incidente{c.incidentes !== 1 ? 's' : ''}</strong> e{' '}
+                <strong>{c.regras} regra{c.regras !== 1 ? 's' : ''} organizacional{c.regras !== 1 ? 'is' : ''}</strong>.
+              </>
+            );
+          })()}
         </span>
       </div>
 
@@ -3920,6 +3941,7 @@ export default function DIPage() {
 
   const [analysisState, setAnalysisState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [analysis, setAnalysis] = useState<AnalysisSection[] | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const [artifactsState, setArtifactsState] = useState<'idle' | 'loading' | 'done'>('idle');
   const [artifacts, setArtifacts] = useState<ArtifactsData | null>(null);
@@ -3977,6 +3999,8 @@ export default function DIPage() {
 
   const runAnalysis = useCallback(async () => {
     setAnalysisState('loading');
+    setAnalysisError(null);
+    setAnalysis(null);
     try {
       const [res] = await Promise.all([
         fetch('/api/platform/analyze', {
@@ -3988,12 +4012,17 @@ export default function DIPage() {
       ]);
       if (res.ok) {
         const data = (await res.json()) as { sections: AnalysisSection[] };
-        setAnalysis(data.sections);
+        if (Array.isArray(data.sections) && data.sections.length > 0) {
+          setAnalysis(data.sections);
+        } else {
+          setAnalysisError('Resposta inválida da análise. Tente novamente.');
+        }
       } else {
-        setAnalysis(analysisFallback);
+        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        setAnalysisError(errData.error ?? 'Erro ao gerar análise. Tente novamente.');
       }
     } catch {
-      setAnalysis(analysisFallback);
+      setAnalysisError('Erro de conexão ao gerar análise. Tente novamente.');
     }
     setAnalysisState('done');
   }, [demand, workspaceId]);
@@ -4081,6 +4110,7 @@ export default function DIPage() {
     // Reset all generated states so a new demand always triggers fresh generation
     setAnalysisState('idle');
     setAnalysis(null);
+    setAnalysisError(null);
     setArtifactsState('idle');
     setArtifacts(null);
     setArtifactsError(null);
@@ -4179,7 +4209,7 @@ export default function DIPage() {
       case 'insights':
         return <InsightsScreen go={go} demand={demand} insightsState={insightsState} insights={insights} />;
       case 'analysis':
-        return <AnalysisScreen analysisState={analysisState} analysis={analysis} go={go} />;
+        return <AnalysisScreen analysisState={analysisState} analysis={analysis} analysisError={analysisError} onRetryAnalysis={() => { setAnalysisState('idle'); runAnalysis(); }} insights={insights} go={go} />;
       case 'artifacts':
         return (
           <ArtifactsScreen
@@ -4187,6 +4217,7 @@ export default function DIPage() {
             artifacts={artifacts}
             artifactsError={artifactsError}
             onRetryArtifacts={() => { setArtifactsState('idle'); runArtifacts(); }}
+            insights={insights}
             go={go}
           />
         );

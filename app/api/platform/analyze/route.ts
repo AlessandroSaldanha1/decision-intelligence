@@ -6,19 +6,8 @@ import { cleanTranscript } from '@/lib/utils/clean-transcript'
 import { getTranscriptContext } from '@/lib/utils/summarize-transcript'
 import type { ClickUpTask } from '@/types/clickup'
 
-const FALLBACK: { sections: { q: string; a: string }[] } = {
-  sections: [
-    { q: 'O que estamos esquecendo?', a: 'Não foi possível gerar a análise. Verifique a conexão e tente novamente.' },
-    { q: 'O que pode dar errado?', a: '' },
-    { q: 'Quem será impactado?', a: '' },
-    { q: 'Quais erros já aconteceram antes?', a: '' },
-    { q: 'Quais soluções já funcionaram?', a: '' },
-  ],
-}
-
 function buildTaskContext(tasks: ClickUpTask[]): string {
-  if (!tasks.length) return 'Nenhuma task similar encontrada no histórico organizacional.'
-
+  if (!tasks.length) return ''
   return tasks
     .slice(0, 10)
     .map((t, i) => {
@@ -36,42 +25,36 @@ export async function POST(req: NextRequest) {
   const { workspaceId } = body
 
   if (isClaudeMockMode()) {
-    return NextResponse.json(FALLBACK)
+    return NextResponse.json({ error: 'Claude não configurado (ANTHROPIC_API_KEY ausente)' }, { status: 503 })
   }
 
-  // Summarize long transcripts to avoid context dilution
   const demand = await getTranscriptContext(rawDemand, env.anthropic.apiKey, env.anthropic.model)
 
-  // Build real organizational context from ClickUp
   let orgContext = ''
   if (workspaceId && !isMockMode()) {
     try {
       const svc = new ClickUpService()
       const searchQuery = demand.split(/[\n.!?]/)[0].trim().slice(0, 150)
       const tasks = await svc.searchTasks(workspaceId, searchQuery)
-      orgContext = buildTaskContext(tasks)
+      const ctx = buildTaskContext(tasks)
+      if (ctx) orgContext = `\nTasks relacionadas no ClickUp:\n${ctx}`
     } catch (err) {
       console.error('[analyze] ClickUp search failed:', err)
-      orgContext = 'Erro ao buscar histórico organizacional no ClickUp.'
     }
-  } else {
-    orgContext = 'Nenhum workspace conectado — análise baseada apenas na demanda.'
   }
 
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
   const prompt = `Você é um analista sênior de uma plataforma de Inteligência Organizacional.
 
-Demanda nova: "${demand}"
-
-Conhecimento organizacional encontrado no ClickUp:
+Demanda: "${demand}"
 ${orgContext}
 
-ATENÇÃO: Baseie suas respostas EXCLUSIVAMENTE na demanda acima e no contexto do ClickUp fornecido. Nunca mencione, invente ou referencie tópicos que não estão presentes na demanda (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses ou qualquer outro assunto externo).
+ATENÇÃO: Baseie suas respostas EXCLUSIVAMENTE na demanda acima e no contexto fornecido. Nunca mencione tópicos ausentes do contexto (como PL/Cota, Atlas Fundos, vigência de fundos, classes de ativos, subclasses).
 
-Produza uma análise de contexto baseada no conteúdo real acima. Responda APENAS com JSON válido, sem markdown, no formato exato:
+Responda APENAS com JSON válido sem markdown:
 {"sections":[{"q":"O que estamos esquecendo?","a":"..."},{"q":"O que pode dar errado?","a":"..."},{"q":"Quem será impactado?","a":"..."},{"q":"Quais erros já aconteceram antes?","a":"..."},{"q":"Quais soluções já funcionaram?","a":"..."}]}
-Cada "a" deve ter 1-2 frases específicas em português, fundamentadas no conteúdo fornecido.`
+Cada resposta: 1-2 frases específicas em português baseadas no conteúdo fornecido.`
 
   try {
     const message = await client.messages.create({
@@ -81,16 +64,30 @@ Cada "a" deve ter 1-2 frases específicas em português, fundamentadas no conte�
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    const match = text.match(/\{[\s\S]*\}/)
-    const data = match ? (JSON.parse(match[0]) as { sections: { q: string; a: string }[] }) : null
+    console.log('[analyze] Claude raw response (first 300):', text.slice(0, 300))
 
-    if (data && Array.isArray(data.sections) && data.sections.length) {
-      return NextResponse.json(data)
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) {
+      console.error('[analyze] No JSON found:', text.slice(0, 500))
+      return NextResponse.json({ error: 'Claude não retornou JSON válido' }, { status: 502 })
     }
-    console.error('[analyze] Claude returned invalid JSON:', text.slice(0, 200))
-    return NextResponse.json(FALLBACK)
+
+    let data: { sections: { q: string; a: string }[] }
+    try {
+      data = JSON.parse(match[0]) as { sections: { q: string; a: string }[] }
+    } catch (parseErr) {
+      console.error('[analyze] JSON.parse failed:', parseErr)
+      return NextResponse.json({ error: 'Falha ao parsear resposta do Claude' }, { status: 502 })
+    }
+
+    if (!Array.isArray(data.sections) || data.sections.length === 0) {
+      console.error('[analyze] Invalid structure:', JSON.stringify(data).slice(0, 200))
+      return NextResponse.json({ error: 'Estrutura da análise inválida' }, { status: 502 })
+    }
+
+    return NextResponse.json(data)
   } catch (err) {
     console.error('[analyze] Claude API error:', err)
-    return NextResponse.json(FALLBACK)
+    return NextResponse.json({ error: 'Erro na chamada ao Claude' }, { status: 502 })
   }
 }
