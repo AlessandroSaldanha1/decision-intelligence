@@ -1230,6 +1230,70 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
   );
 }
 
+// ─── Loading quips per step ───────────────────────────────────────────────────
+
+const quipsByStep: Record<string, string[]> = {
+  searching: [
+    'Vasculhando o ClickUp como se fosse o baú do tesouro…',
+    'Lendo 48 mil comentários. Sim, todos.',
+    'Consultando o histórico de decisões (algumas delas, questionáveis)…',
+    'Encontrando padrões que ninguém sabia que existiam…',
+    'Buscando quem já resolveu algo parecido antes (alguém sempre já resolveu).',
+  ],
+  analysis: [
+    'Perguntando ao assistente IA o que ele acha disso tudo…',
+    'O assistente está lendo entre as linhas. E entre as tasks.',
+    'Identificando o que pode dar errado antes que você descubra sozinho…',
+    'Cruzando sua demanda com anos de histórico organizacional.',
+    'Analisando riscos que você nem sabia que existiam. De nada.',
+    'Pensando nas perguntas difíceis que ninguém quer fazer em reunião.',
+  ],
+  artifacts: [
+    'Escrevendo a User Story com todo o cuidado que ela merece…',
+    'Gerando BDD. Dado que você pediu, quando o sistema processar, então vai aparecer.',
+    'Checando se os critérios de aceite fazem sentido. Alguém tinha que fazer isso.',
+    'Transformando reunião em especificação. Mágica organizacional em andamento.',
+    'Definindo o Definition of Done. Porque "tá bom" não é critério.',
+    'Construindo artefatos com base na experiência de quem veio antes.',
+  ],
+  plan: [
+    'Montando o plano de entrega com base no que realmente funciona aqui…',
+    'Distribuindo tarefas entre Backend, Frontend e QA. Com carinho.',
+    'Calculando o risco. Spoiler: sempre tem algum.',
+    'Verificando dependências para evitar bloqueios surpresa.',
+    'Estruturando épico e sprints. O time vai agradecer (ou reclamar, mas com estrutura).',
+    'Consultando projetos similares para não reinventar a roda.',
+  ],
+};
+
+function LoadingQuip({ step }: { step: keyof typeof quipsByStep }) {
+  const quips = quipsByStep[step] ?? quipsByStep.searching;
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % quips.length), 2800);
+    return () => clearInterval(id);
+  }, [quips.length]);
+  return (
+    <div style={{
+      padding: '13px 18px',
+      border: '1px solid var(--line)',
+      borderRadius: 10,
+      background: 'var(--paper-2)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 13,
+      marginBottom: 24,
+    }}>
+      <div style={{ position: 'relative', width: 16, height: 16, flexShrink: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, border: '2px solid var(--line)', borderTopColor: 'var(--clay)', borderRadius: '50%', animation: 'di-spin .9s linear infinite' }} />
+      </div>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink-2)', letterSpacing: '0.01em' }}>
+        {quips[idx]}
+      </span>
+    </div>
+  );
+}
+
 function SearchingScreen({ demand, stats }: SearchingProps) {
   const scanLabels = [
     `ClickUp · ${stats ? `${stats.tasks}+` : '…'} tasks varridas`,
@@ -1323,6 +1387,8 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
         &ldquo;{demand}&rdquo;
       </p>
 
+      <LoadingQuip step="searching" />
+
       {/* Scan rows */}
       <div
         style={{
@@ -1379,18 +1445,6 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
   );
 }
 
-const loadingQuips = [
-  'Vasculhando o ClickUp como se fosse o baú do tesouro…',
-  'Perguntando ao assistente IA o que ele acha disso tudo…',
-  'Lendo 48 mil comentários. Sim, todos.',
-  'Consultando o histórico de decisões (algumas delas, questionáveis)…',
-  'Cruzando projetos antigos com a sua demanda. Paciência.',
-  'O assistente IA está pensando. Ele é rápido, mas não milagroso.',
-  'Encontrando padrões que ninguém sabia que existiam…',
-  'Analisando incidentes passados pra você não repetir os mesmos erros.',
-  'Traduzindo caos organizacional em estrutura. Quase lá.',
-  'Buscando quem já resolveu algo parecido antes (alguém sempre já resolveu).',
-];
 
 function InsightsScreen({ go, demand, insightsState, insights }: {
   go: (s: Screen) => void;
@@ -1399,15 +1453,6 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
   insights: InsightsData | null;
 }) {
   const loading = insightsState === 'loading';
-  const [quipIndex, setQuipIndex] = useState(0);
-
-  useEffect(() => {
-    if (!loading) return;
-    const interval = setInterval(() => {
-      setQuipIndex((i) => (i + 1) % loadingQuips.length);
-    }, 2800);
-    return () => clearInterval(interval);
-  }, [loading]);
   const c = insights?.counts;
   const countsData = [
     { n: c ? String(c.projetos) : null, color: 'var(--clay)', label: 'projetos' },
@@ -1446,26 +1491,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
         </span>
       </div>
 
-      {/* Loading quip banner */}
-      {loading && (
-        <div style={{
-          margin: '0 0 28px',
-          padding: '14px 20px',
-          border: '1px solid var(--line)',
-          borderRadius: 10,
-          background: 'var(--paper-2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}>
-          <div style={{ position: 'relative', width: 18, height: 18, flexShrink: 0 }}>
-            <div style={{ position: 'absolute', inset: 0, border: '2px solid var(--line)', borderTopColor: 'var(--clay)', borderRadius: '50%', animation: 'di-spin .9s linear infinite' }} />
-          </div>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--ink-2)', letterSpacing: '0.01em' }}>
-            {loadingQuips[quipIndex]}
-          </span>
-        </div>
-      )}
+      {loading && <LoadingQuip step="searching" />}
 
       {/* Hero */}
       <h1
@@ -2062,30 +2088,7 @@ function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysi
 
       {analysisState !== 'done' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ position: 'relative', width: 20, height: 20 }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  border: '2px solid var(--line)',
-                  borderTopColor: 'var(--clay)',
-                  borderRadius: '50%',
-                  animation: 'di-spin .9s linear infinite',
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontFamily: 'var(--mono)',
-                fontSize: 13,
-                color: 'var(--ink-2)',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Claude está analisando o contexto organizacional…
-            </span>
-          </div>
+          <LoadingQuip step="analysis" />
           <Skel h={78} />
           <Skel h={78} />
           <Skel h={78} />
@@ -2321,12 +2324,7 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
 
       {artifactsState !== 'done' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <Spinner color="var(--accent-ink)" />
-            <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>
-              Gerando artefatos com a experiência acumulada…
-            </span>
-          </div>
+          <LoadingQuip step="artifacts" />
           <Skel h={90} />
           <Skel h={120} />
           <Skel h={90} />
@@ -2694,6 +2692,7 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
 
       {/* Content (only when plan loaded successfully) */}
       {(loading || d) && (<>
+      {loading && <LoadingQuip step="plan" />}
 
       {/* Epic Card */}
       <div
