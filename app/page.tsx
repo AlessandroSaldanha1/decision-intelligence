@@ -3120,7 +3120,7 @@ function PreviewScreen({ demand, artifacts, analysis, workspace, workspaceId, pu
         setSelectedSpaceId(sp.id);
         setSelectedFolderName(folder?.name ?? '');
         setSelectedListName(lists[0]?.name ?? '');
-        if (!publishConfig.listId && lists[0]) updateCfg('listId', lists[0].id);
+        if (lists[0]) updateCfg('listId', lists[0].id);
       })
       .catch(() => {})
       .finally(() => setCkLoading(false));
@@ -4124,10 +4124,11 @@ export default function DIPage() {
   const [plan, setPlan] = useState<PlanData | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
 
-  // Save publishConfig to localStorage when changed
+  // Save publishConfig to localStorage (excluding listId — it's workspace-specific)
   useEffect(() => {
     try {
-      localStorage.setItem('di-publish-config', JSON.stringify(publishConfig));
+      const { listId: _omit, ...rest } = publishConfig;
+      localStorage.setItem('di-publish-config', JSON.stringify(rest));
     } catch {
       // ignore
     }
