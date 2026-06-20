@@ -86,112 +86,29 @@ const memoryMetrics = [
   { n: '7', l: 'Documentos' },
 ];
 
-const scanLabels = [
-  'ClickUp · 412 tasks varridas',
-  'Jira · 7.300 decisões',
-  'Confluence + Notion · documentação',
-  '48.000 comentários analisados',
-  'Incidentes e post-mortems',
-  'Construindo contexto semântico (RAG)',
-];
+// scanLabels is built dynamically in SearchingScreen from real stats
 
-const counts = { projetos: 3, incidentes: 2, regras: 4, solucoes: 1 };
+// ─── Insights + Plan types ────────────────────────────────────────────────────
+interface InsightsProject {
+  name: string; sim: number; kind: string; detail: string; result: string; tc: string;
+}
+interface InsightsPerson { name: string; role: string; initials: string; }
+interface InsightsData {
+  projects: InsightsProject[];
+  people: InsightsPerson[];
+  teams: string[];
+  lessons: string[];
+  counts: { projetos: number; incidentes: number; regras: number; solucoes: number };
+}
+interface PlanGroup { frente: string; items: string[]; }
+interface PlanData {
+  epic: string; usTitle: string; usDesc: string;
+  groups: PlanGroup[];
+  deps: string[];
+  risk: { score: number; label: string };
+  reuse: { n: string; l: string }[];
+}
 
-const projects = [
-  {
-    name: 'Atlas Fundos',
-    sim: 91,
-    kind: 'Problema encontrado',
-    detail: 'Mudança de vigência impactou PL/Cota',
-    result: 'Incidente em produção',
-    tc: 'var(--clay)',
-  },
-  {
-    name: 'Previdência',
-    sim: 84,
-    kind: 'Problema encontrado',
-    detail: 'Ausência de justificativa obrigatória',
-    result: 'Falha de auditoria',
-    tc: 'var(--clay)',
-  },
-  {
-    name: 'Cadastro',
-    sim: 79,
-    kind: 'Solução aplicada',
-    detail: 'Análise de impacto antes da aplicação',
-    result: 'Redução de chamados',
-    tc: 'var(--sage)',
-  },
-];
-
-const people = [
-  { name: 'Ricardo Silva', role: 'Tech Lead · Atlas', initials: 'RS' },
-  { name: 'Jessica Moraes', role: 'Compliance', initials: 'JM' },
-  { name: 'Thaís Andrade', role: 'Product · Previdência', initials: 'TA' },
-];
-
-const teams = ['Operação', 'Compliance', 'Produto', 'Engenharia'];
-const lessons = [
-  'Sempre exigir justificativa',
-  'Não alterar fundos encerrados',
-  'Validar impacto em entidades filhas',
-  'Auditar alterações sensíveis',
-];
-
-const planData = {
-  epic: 'Alteração de Vigência de Classe',
-  usTitle: 'Operador pode alterar vigência de classe para corrigir dados cadastrais',
-  usDesc:
-    'Como operador autorizado, quero alterar a data de início e fim de vigência de uma classe para corrigir informações cadastrais com rastreabilidade e análise de impacto.',
-  groups: [
-    {
-      frente: 'Backend',
-      items: [
-        'Criar endpoint de análise de impacto',
-        'Criar endpoint de aplicação de vigência',
-        'Implementar auditoria e histórico de alterações',
-      ],
-    },
-    {
-      frente: 'Frontend',
-      items: [
-        'Criar tela/modal de alteração de vigência',
-        'Criar etapa de análise de impacto',
-        'Criar confirmação final antes da aplicação',
-      ],
-    },
-    {
-      frente: 'QA',
-      items: [
-        'Criar cenários BDD automatizáveis',
-        'Validar fluxo com subclasses relacionadas',
-        'Validar bloqueios e mensagens de erro',
-      ],
-    },
-    {
-      frente: 'Produto',
-      items: [
-        'Validar regra de propagação',
-        'Validar necessidade de justificativa obrigatória',
-        'Validar comportamento para fundo encerrado',
-      ],
-    },
-  ],
-  deps: [
-    'API de dados cadastrais',
-    'Banco de dados',
-    'Histórico de alterações',
-    'Regras de PL/Cota',
-    'Webhook de notificação',
-  ],
-  risk: { score: 82, label: 'Alto' },
-  reuse: [
-    { n: '3', l: 'projetos semelhantes usados' },
-    { n: '2', l: 'incidentes históricos considerados' },
-    { n: '4', l: 'regras organizacionais aplicadas' },
-    { n: '1', l: 'solução validada reutilizada' },
-  ],
-};
 
 const previewSubtasks = [
   { group: 'Backend', name: 'Análise de impacto' },
@@ -400,8 +317,8 @@ function Spinner({ size = 20, color = 'var(--clay)' }: { size?: number; color?: 
   );
 }
 
-function Skel({ h = 20, w = '100%' }: { h?: number; w?: number | string }) {
-  return <div className="di-skel" style={{ height: h, width: w }} />;
+function Skel({ h = 20, w = '100%', r = 4 }: { h?: number; w?: number | string; r?: number }) {
+  return <div className="di-skel" style={{ height: h, width: w, borderRadius: r }} />;
 }
 
 function StatGrid({ items, dark = false }: { items: { n: string; l: string }[]; dark?: boolean }) {
@@ -485,6 +402,7 @@ interface DemandProps {
 
 interface SearchingProps {
   demand: string;
+  stats: { spaces: number; lists: number; tasks: number } | null;
 }
 
 interface InsightsProps {
@@ -1364,7 +1282,15 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
   );
 }
 
-function SearchingScreen({ demand }: SearchingProps) {
+function SearchingScreen({ demand, stats }: SearchingProps) {
+  const scanLabels = [
+    `ClickUp · ${stats ? `${stats.tasks}+` : '…'} tasks varridas`,
+    `${stats ? `${stats.spaces} spaces` : 'Spaces'} · ${stats ? `${stats.lists} listas` : 'listas'}`,
+    'Confluence + Notion · documentação',
+    'Incidentes e post-mortems',
+    'Construindo contexto semântico (RAG)',
+    'Passando para o Claude…',
+  ];
   return (
     <div
       style={{
@@ -1499,12 +1425,19 @@ function SearchingScreen({ demand }: SearchingProps) {
   );
 }
 
-function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: string }) {
+function InsightsScreen({ go, demand, insightsState, insights }: {
+  go: (s: Screen) => void;
+  demand: string;
+  insightsState: 'idle' | 'loading' | 'done';
+  insights: InsightsData | null;
+}) {
+  const loading = insightsState === 'loading';
+  const c = insights?.counts;
   const countsData = [
-    { n: String(counts.projetos), color: 'var(--clay)', label: 'projetos' },
-    { n: String(counts.incidentes), color: 'var(--clay)', label: 'incidentes' },
-    { n: String(counts.regras), color: 'var(--ink)', label: 'regras de negócio' },
-    { n: String(counts.solucoes), color: 'var(--sage)', label: 'solução validada' },
+    { n: c ? String(c.projetos) : null, color: 'var(--clay)', label: 'projetos' },
+    { n: c ? String(c.incidentes) : null, color: 'var(--clay)', label: 'incidentes' },
+    { n: c ? String(c.regras) : null, color: 'var(--ink)', label: 'regras de negócio' },
+    { n: c ? String(c.solucoes) : null, color: 'var(--sage)', label: 'solução validada' },
   ];
 
   return (
@@ -1550,8 +1483,12 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
           color: 'var(--ink)',
         }}
       >
-        A organização já enfrentou isto{' '}
-        <em style={{ fontStyle: 'italic', color: 'var(--clay)' }}>três vezes</em>.
+        {loading ? <Skel w="60%" h={52} r={8} /> : (
+          <>A organização já enfrentou isto{' '}
+          <em style={{ fontStyle: 'italic', color: 'var(--clay)' }}>
+            {c && c.projetos > 0 ? `${c.projetos} ${c.projetos === 1 ? 'vez' : 'vezes'}` : 'antes'}
+          </em>.</>
+        )}
       </h1>
 
       <p
@@ -1586,29 +1523,18 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
               borderRight: i < countsData.length - 1 ? '1px solid var(--line)' : 'none',
             }}
           >
-            <div
-              style={{
-                fontFamily: 'var(--serif)',
-                fontSize: 48,
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
-                color: item.color,
-              }}
-            >
-              {item.n}
-            </div>
-            <div
-              style={{
-                fontFamily: 'var(--mono)',
-                fontSize: 11,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--ink-3)',
-                marginTop: 10,
-              }}
-            >
-              {item.label}
-            </div>
+            {loading || item.n === null ? (
+              <><Skel w={40} h={44} r={6} /><div style={{ marginTop: 14 }}><Skel w={80} h={10} /></div></>
+            ) : (
+              <>
+                <div style={{ fontFamily: 'var(--serif)', fontSize: 48, lineHeight: 1, letterSpacing: '-0.02em', color: item.color }}>
+                  {item.n}
+                </div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 10 }}>
+                  {item.label}
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -1675,7 +1601,12 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
           gap: 20,
         }}
       >
-        {projects.map((p, i) => (
+        {loading ? [0,1,2].map((i) => (
+          <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 16, background: 'var(--paper)', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Skel w="55%" h={12} /><Skel w="70%" h={26} r={6} /><Skel w="100%" h={5} r={100} />
+            <Skel w="40%" h={10} /><Skel w="90%" h={14} /><Skel w="60%" h={14} />
+          </div>
+        )) : (insights?.projects ?? []).map((p, i) => (
           <div
             key={i}
             style={{
@@ -1832,6 +1763,7 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
       </div>
 
       {/* People + Teams + Lessons */}
+
       <div
         style={{
           display: 'grid',
@@ -1864,7 +1796,14 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
               Quem já trabalhou nisto
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {people.map((p, i) => (
+              {loading ? [0,1,2].map((i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+                  <Skel w={38} h={38} r={100} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Skel w="60%" h={13} /><Skel w="40%" h={10} />
+                  </div>
+                </div>
+              )) : insights && insights.people.length > 0 ? insights.people.map((p, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                   <div
                     style={{
@@ -1899,7 +1838,9 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p style={{ fontSize: 14, color: 'var(--ink-3)', margin: 0 }}>Nenhum responsável identificado.</p>
+              )}
             </div>
           </div>
 
@@ -1925,7 +1866,8 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
               Times impactados
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-              {teams.map((t) => (
+              {loading ? [0,1,2,3].map((i) => <Skel key={i} w={80} h={32} r={100} />) :
+              (insights?.teams ?? []).map((t) => (
                 <span
                   key={t}
                   style={{
@@ -1968,37 +1910,20 @@ function InsightsScreen({ go, demand }: { go: (s: Screen) => void; demand: strin
             Lições aprendidas encontradas
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {lessons.map((l, i) => (
+            {loading ? [0,1,2,3].map((i) => (
+              <div key={i} style={{ padding: '13px 0', borderBottom: i < 3 ? '1px solid var(--line-on-ink)' : 'none' }}>
+                <Skel w={`${60 + i * 8}%`} h={14} />
+              </div>
+            )) : (insights?.lessons ?? []).map((l, i, arr) => (
               <div
                 key={i}
                 style={{
-                  display: 'flex',
-                  gap: 13,
-                  alignItems: 'baseline',
-                  padding: '13px 0',
-                  borderBottom:
-                    i < lessons.length - 1 ? '1px solid var(--line-on-ink)' : 'none',
+                  display: 'flex', gap: 13, alignItems: 'baseline', padding: '13px 0',
+                  borderBottom: i < arr.length - 1 ? '1px solid var(--line-on-ink)' : 'none',
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--mono)',
-                    color: 'var(--accent-ink)',
-                    flex: '0 0 auto',
-                  }}
-                >
-                  →
-                </span>
-                <span
-                  style={{
-                    fontFamily: 'var(--serif)',
-                    fontSize: 16,
-                    color: 'var(--on-ink-1)',
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {l}
-                </span>
+                <span style={{ fontFamily: 'var(--mono)', color: 'var(--accent-ink)', flex: '0 0 auto' }}>→</span>
+                <span style={{ fontFamily: 'var(--serif)', fontSize: 16, color: 'var(--on-ink-1)', lineHeight: 1.45 }}>{l}</span>
               </div>
             ))}
           </div>
@@ -2604,7 +2529,9 @@ function ArtifactsScreen({ artifactsState, artifacts, go }: { artifactsState: 'i
   );
 }
 
-function PlanScreen({ go }: { go: (s: Screen) => void }) {
+function PlanScreen({ go, planState, plan }: { go: (s: Screen) => void; planState: 'idle' | 'loading' | 'done'; plan: PlanData | null }) {
+  const loading = planState === 'loading';
+  const d = plan;
   return (
     <div className="di-scrn" style={{ padding: '56px var(--pad-x) 90px', maxWidth: 1060 }}>
       {/* Header row */}
@@ -2688,7 +2615,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
               color: 'var(--ink)',
             }}
           >
-            {planData.epic}
+            {loading || !d ? <Skel w={160} h={14} /> : d.epic}
           </span>
         </div>
         {/* Card body */}
@@ -2715,7 +2642,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
               color: 'var(--ink)',
             }}
           >
-            {planData.usTitle}
+            {loading || !d ? <><Skel w="80%" h={22} r={6} /><div style={{marginTop:8}}><Skel w="55%" h={22} r={6} /></div></> : d.usTitle}
           </div>
           <div
             style={{
@@ -2725,7 +2652,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
               maxWidth: '70ch',
             }}
           >
-            {planData.usDesc}
+            {loading || !d ? <><Skel w="100%" h={14} /><div style={{marginTop:6}}><Skel w="70%" h={14} /></div></> : d.usDesc}
           </div>
         </div>
       </div>
@@ -2753,7 +2680,12 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
           marginBottom: 32,
         }}
       >
-        {planData.groups.map((g, i) => (
+        {(loading || !d) ? [0,1,2,3].map((i) => (
+          <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 16, background: 'var(--paper)', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Skel w="40%" h={16} r={6} />
+            <Skel w="100%" h={12} /><Skel w="85%" h={12} /><Skel w="90%" h={12} />
+          </div>
+        )) : d.groups.map((g, i) => (
           <div
             key={i}
             style={{
@@ -2850,9 +2782,10 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
             Dependências
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-            {planData.deps.map((d) => (
+            {(loading || !d) ? [0,1,2].map((i) => <Skel key={i} w={90} h={30} r={100} />) :
+            d.deps.map((dep) => (
               <span
-                key={d}
+                key={dep}
                 style={{
                   fontFamily: 'var(--mono)',
                   fontSize: 12,
@@ -2862,7 +2795,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
                   padding: '6px 13px',
                 }}
               >
-                {d}
+                {dep}
               </span>
             ))}
           </div>
@@ -2899,7 +2832,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
                 color: 'var(--clay)',
               }}
             >
-              {planData.risk.score}
+              {loading || !d ? <Skel w={48} h={44} r={6} /> : d.risk.score}
             </span>
             <span
               style={{
@@ -2923,7 +2856,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
                 marginLeft: 'auto',
               }}
             >
-              {planData.risk.label}
+              {loading || !d ? '…' : d.risk.label}
             </span>
           </div>
           {/* Risk bar */}
@@ -2941,7 +2874,7 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
                 height: '100%',
                 borderRadius: 100,
                 background: 'var(--clay)',
-                width: `${planData.risk.score}%`,
+                width: `${d?.risk.score ?? 0}%`,
                 transformOrigin: 'left',
                 animation: 'di-grow .9s var(--ease)',
               }}
@@ -2974,12 +2907,16 @@ function PlanScreen({ go }: { go: (s: Screen) => void }) {
           overflow: 'hidden',
         }}
       >
-        {planData.reuse.map((r, i) => (
+        {(loading || !d) ? [0,1,2,3].map((i) => (
+          <div key={i} style={{ padding: '22px 22px', borderRight: i < 3 ? '1px solid var(--line)' : 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Skel w={40} h={38} r={6} /><Skel w="80%" h={11} /><Skel w="60%" h={11} />
+          </div>
+        )) : d.reuse.map((r, i) => (
           <div
             key={i}
             style={{
               padding: '22px 22px',
-              borderRight: i < planData.reuse.length - 1 ? '1px solid var(--line)' : 'none',
+              borderRight: i < d.reuse.length - 1 ? '1px solid var(--line)' : 'none',
             }}
           >
             <div
@@ -3961,6 +3898,11 @@ export default function DIPage() {
 
   const [publishConfig, setPublishConfig] = useState<PublishConfig>(getInitialPublishConfig);
 
+  const [insightsState, setInsightsState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [insights, setInsights] = useState<InsightsData | null>(null);
+  const [planState, setPlanState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const [plan, setPlan] = useState<PlanData | null>(null);
+
   // Save publishConfig to localStorage when changed
   useEffect(() => {
     try {
@@ -4044,20 +3986,46 @@ export default function DIPage() {
     setArtifactsState('done');
   }, [demand, workspaceId]);
 
+  const runPlan = useCallback(() => {
+    setPlanState('loading');
+    setPlan(null);
+    fetch('/api/platform/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ demand, workspaceId, artifacts }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: PlanData | null) => { if (data) setPlan(data); })
+      .catch(() => {})
+      .finally(() => setPlanState('done'));
+  }, [demand, workspaceId, artifacts]);
+
   const go = useCallback(
     (s: Screen) => {
       setScreen(s);
       if (mainRef.current) mainRef.current.scrollTop = 0;
       if (s === 'analysis' && analysisState === 'idle') runAnalysis();
       if (s === 'artifacts' && artifactsState === 'idle') runArtifacts();
+      if (s === 'plan' && planState === 'idle') runPlan();
     },
-    [analysisState, artifactsState, runAnalysis, runArtifacts]
+    [analysisState, artifactsState, planState, runAnalysis, runArtifacts, runPlan]
   );
 
   const runSearch = useCallback(() => {
+    setInsightsState('loading');
+    setInsights(null);
     go('searching');
+    fetch('/api/platform/insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ demand, workspaceId }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: InsightsData | null) => { if (data) setInsights(data); })
+      .catch(() => {})
+      .finally(() => setInsightsState('done'));
     setTimeout(() => go('insights'), 2000);
-  }, [go]);
+  }, [demand, workspaceId, go]);
 
   const doPublish = useCallback(
     async (forceMock: boolean) => {
@@ -4079,7 +4047,7 @@ export default function DIPage() {
         const res = await fetch('/api/platform/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand, publishConfig, forceMock }),
+          body: JSON.stringify({ demand, publishConfig, forceMock, artifacts, analysis }),
         });
 
         if (res.ok) {
@@ -4132,9 +4100,9 @@ export default function DIPage() {
           />
         );
       case 'searching':
-        return <SearchingScreen demand={demand} />;
+        return <SearchingScreen demand={demand} stats={stats} />;
       case 'insights':
-        return <InsightsScreen go={go} demand={demand} />;
+        return <InsightsScreen go={go} demand={demand} insightsState={insightsState} insights={insights} />;
       case 'analysis':
         return <AnalysisScreen analysisState={analysisState} analysis={analysis} go={go} />;
       case 'artifacts':
@@ -4142,7 +4110,7 @@ export default function DIPage() {
           <ArtifactsScreen artifactsState={artifactsState} artifacts={artifacts} go={go} />
         );
       case 'plan':
-        return <PlanScreen go={go} />;
+        return <PlanScreen go={go} planState={planState} plan={plan} />;
       case 'preview':
         return (
           <PreviewScreen

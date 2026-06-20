@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { env, isMockMode } from '@/lib/config/env'
 
+interface ArtifactsInput {
+  userStory?: string
+  bdd?: string[]
+  testCases?: string[]
+  dod?: string[]
+  dependencies?: string[]
+  subtasks?: string[]
+}
+
+interface AnalysisSection {
+  q: string
+  a: string
+}
+
 interface PublishBody {
   demand: string
   publishConfig: {
@@ -14,53 +28,75 @@ interface PublishBody {
     optBdd: boolean
     optDod: boolean
   }
+  artifacts?: ArtifactsInput
+  analysis?: AnalysisSection[]
   forceMock?: boolean
 }
 
-const subtasks = [
-  { group: 'Backend', name: 'Análise de impacto' },
-  { group: 'Backend', name: 'Aplicação de vigência' },
-  { group: 'Backend', name: 'Auditoria' },
-  { group: 'Frontend', name: 'Modal de alteração' },
-  { group: 'Frontend', name: 'Lista de impactos' },
-  { group: 'QA', name: 'Cenários BDD' },
-  { group: 'Produto', name: 'Validação de regra' },
-]
-
-function buildDescription(demand: string, cfg: PublishBody['publishConfig']): string {
-  const parts = [
-    `# User Story\n\nComo operador autorizado\nQuero alterar a data de início e fim de vigência de uma classe\nPara corrigir informações cadastrais sem abertura de GMUD`,
-    `# Contexto de negócio\n\nAlterações cadastrais sensíveis precisam ser feitas com rastreabilidade, análise de impacto e histórico auditável.\n\nDemanda original: ${demand}`,
+function buildSubtasks(artifacts: ArtifactsInput | undefined) {
+  if (artifacts?.subtasks?.length) {
+    const groups = ['Backend', 'Frontend', 'QA', 'Produto']
+    return artifacts.subtasks.map((name, i) => ({
+      group: groups[i % groups.length],
+      name,
+    }))
+  }
+  return [
+    { group: 'Backend', name: 'Análise de impacto' },
+    { group: 'Backend', name: 'Aplicação de vigência' },
+    { group: 'Backend', name: 'Auditoria' },
+    { group: 'Frontend', name: 'Modal de alteração' },
+    { group: 'Frontend', name: 'Lista de impactos' },
+    { group: 'QA', name: 'Cenários BDD' },
+    { group: 'Produto', name: 'Validação de regra' },
   ]
-  if (cfg.optBdd) {
-    parts.push(`# Critérios BDD\n\n## Cenário: Alteração de vigência com sucesso\nDado que existe uma classe ativa\nE o usuário possui permissão de edição\nE informou justificativa válida\nQuando aplicar nova data de vigência\nEntão o sistema atualiza a vigência da classe\nE registra a alteração no histórico\n\n## Cenário: Tentativa sem justificativa\nDado que existe uma classe ativa\nQuando o usuário tentar aplicar nova vigência sem justificativa\nEntão o sistema bloqueia a alteração\nE exibe mensagem de justificativa obrigatória`)
+}
+
+function buildDescription(demand: string, cfg: PublishBody['publishConfig'], artifacts: ArtifactsInput | undefined): string {
+  const us = artifacts?.userStory ?? `Como usuário, quero ${demand.toLowerCase()} para melhorar a operação.`
+  const parts = [
+    `# User Story\n\n${us}`,
+    `# Contexto de negócio\n\nDemanda original: ${demand}`,
+  ]
+  if (cfg.optBdd && artifacts?.bdd?.length) {
+    parts.push(`# Critérios BDD\n\n${artifacts.bdd.map((s) => `- ${s}`).join('\n')}`)
   }
-  parts.push(`# Casos de teste\n\n- Deve permitir alteração com usuário autorizado\n- Deve bloquear alteração sem justificativa\n- Deve listar entidades impactadas antes da aplicação\n- Deve registrar histórico da alteração`)
-  if (cfg.optDod) {
-    parts.push(`# Definition of Done\n\n- US revisada pelo PM\n- Critérios BDD aprovados pelo QA\n- Logs e auditoria implementados\n- Testes automatizados criados\n- Documentação atualizada`)
+  if (artifacts?.testCases?.length) {
+    parts.push(`# Casos de teste\n\n${artifacts.testCases.map((t) => `- ${t}`).join('\n')}`)
   }
-  parts.push(`# Conhecimento organizacional reaproveitado\n\n- Projeto Atlas Fundos: alteração semelhante impactou PL/Cota\n- Projeto Previdência: ausência de justificativa gerou falha de auditoria\n- Projeto Cadastro: análise de impacto reduziu chamados`)
+  if (cfg.optDod && artifacts?.dod?.length) {
+    parts.push(`# Definition of Done\n\n${artifacts.dod.map((d) => `- ${d}`).join('\n')}`)
+  }
+  if (artifacts?.dependencies?.length) {
+    parts.push(`# Dependências\n\n${artifacts.dependencies.map((d) => `- ${d}`).join('\n')}`)
+  }
   return parts.join('\n\n')
 }
 
-function buildComment(demand: string): string {
-  return [
+function buildComment(demand: string, analysis: AnalysisSection[] | undefined): string {
+  const lines = [
     'Análise crítica gerada pelo Decision Intelligence.',
     '',
     `Demanda: ${demand}`,
-    'Ambiguidades: escopo de "vigência" não distingue claramente data de início e fim; comportamento para entidades filhas (subclasses) indefinido.',
-    'Riscos: inconsistência em PL/Cota · histórico incompleto · propagação indevida · falha de auditoria.',
-    'Stakeholders impactados: Operação, Compliance, Produto, Engenharia.',
-    'Score de risco: 82/100 (Alto).',
-    'Contextos históricos usados: Atlas Fundos (incidente de PL/Cota), Previdência (falha de auditoria), Cadastro (análise de impacto reduziu chamados).',
-  ].join('\n')
+    '',
+  ]
+  if (analysis?.length) {
+    for (const s of analysis) {
+      lines.push(`${s.q}\n${s.a}`, '')
+    }
+  } else {
+    lines.push('Análise de contexto não disponível para esta publicação.')
+  }
+  return lines.join('\n').trim()
 }
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as PublishBody
-  const { demand, publishConfig: cfg, forceMock } = body
+  const { demand, publishConfig: cfg, artifacts, analysis, forceMock } = body
   const listId = cfg.listId.trim()
   const useMock = forceMock || isMockMode() || !listId
+
+  const subtasks = buildSubtasks(artifacts)
 
   if (useMock) {
     return NextResponse.json({
@@ -77,13 +113,17 @@ export async function POST(req: NextRequest) {
   const headers = { Authorization: token, 'Content-Type': 'application/json' }
   const tags = cfg.tags.split(',').map((t) => t.trim()).filter(Boolean)
 
+  const taskName = artifacts?.userStory
+    ? artifacts.userStory.replace(/^Como [^,]+, eu quero /i, '').split(' para ')[0].slice(0, 120)
+    : demand.slice(0, 120)
+
   try {
     const taskRes = await fetch(`${base}/list/${encodeURIComponent(listId)}/task`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        name: 'Operador pode alterar vigência de classe para corrigir dados cadastrais',
-        description: buildDescription(demand, cfg),
+        name: taskName,
+        description: buildDescription(demand, cfg, artifacts),
         status: cfg.status,
         priority: Number(cfg.priority),
         tags,
@@ -121,7 +161,7 @@ export async function POST(req: NextRequest) {
       const r = await fetch(`${base}/task/${task.id}/comment`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ comment_text: buildComment(demand) }),
+        body: JSON.stringify({ comment_text: buildComment(demand, analysis) }),
       })
       commentCreated = r.ok
     }
