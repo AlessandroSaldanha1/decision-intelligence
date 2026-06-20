@@ -106,7 +106,7 @@ interface PlanData {
   epic: string; usTitle: string; usDesc: string;
   groups: PlanGroup[];
   deps: string[];
-  risk: { score: number; label: string };
+  risk: { score: number; label: string; factors: string[] };
   reuse: { n: string; l: string }[];
 }
 
@@ -2959,6 +2959,23 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
               }}
             />
           </div>
+
+          {/* Risk factors */}
+          {d?.risk.factors?.length ? (
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {d.risk.factors.map((f, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <span style={{ color: 'var(--clay)', fontSize: 10, marginTop: 4, flex: '0 0 auto' }}>▲</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4 }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          ) : loading ? (
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <Skel h={14} />
+              <Skel h={14} />
+            </div>
+          ) : null}
         </div>
       </div>
 

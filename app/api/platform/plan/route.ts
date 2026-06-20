@@ -30,7 +30,7 @@ interface PlanData {
   usDesc: string
   groups: PlanGroup[]
   deps: string[]
-  risk: { score: number; label: string }
+  risk: { score: number; label: string; factors: string[] }
   reuse: { n: string; l: string }[]
 }
 
@@ -112,7 +112,11 @@ Retorne APENAS JSON válido sem markdown:
     { "frente": "Produto", "items": ["item 1", "item 2"] }
   ],
   "deps": ["dep1", "dep2", "dep3"],
-  "risk": { "score": 65, "label": "Médio" },
+  "risk": {
+    "score": 65,
+    "label": "Médio",
+    "factors": ["fator que eleva o risco 1", "fator que eleva o risco 2", "fator que eleva o risco 3"]
+  },
   "reuse": [
     { "n": "2", "l": "projetos semelhantes considerados" },
     { "n": "1", "l": "incidentes históricos considerados" },
@@ -121,7 +125,7 @@ Retorne APENAS JSON válido sem markdown:
   ]
 }
 
-Regras: risk.score 0-100; label "Baixo" (<40), "Médio" (40-70), "Alto" (>70); 3-4 itens por grupo; tudo em português.`
+Regras: risk.score 0-100; label "Baixo" (<40), "Médio" (40-70), "Alto" (>70); risk.factors são 2-4 frases curtas explicando os principais motivos do score (ex: "Dependência de time externo", "Integração com sistema sem documentação"); 3-4 itens por grupo; tudo em português.`
 
   try {
     const msg = await client.messages.create({
