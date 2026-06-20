@@ -45,8 +45,7 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
     const assignees = t.assignees?.map((a) => a.username).join(', ') ?? ''
     const tags = t.tags?.map((tg) => (typeof tg === 'string' ? tg : tg.name)).join(', ') ?? ''
     const list = t.list?.name ? ` [lista: ${t.list.name}]` : ''
-    const space = t.space?.name ? ` [space: ${t.space.name}]` : ''
-    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${list}${space}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
+    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${list}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
   }).join('\n')
 }
 
