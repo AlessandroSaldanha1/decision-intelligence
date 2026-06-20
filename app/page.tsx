@@ -853,7 +853,9 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
           style={{
             width: '100%',
             minHeight: 120,
+            maxHeight: 280,
             resize: 'vertical',
+            overflowY: 'auto',
             fontFamily: 'var(--serif)',
             fontSize: 26,
             lineHeight: 1.35,
