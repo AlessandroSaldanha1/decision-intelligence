@@ -1645,6 +1645,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
                   {p.sim}%
                 </div>
                 <div
+                  title="Estimativa gerada pelo assistente IA sobre o quanto esse projeto se relaciona com a demanda atual, com base no conteúdo das tasks encontradas no ClickUp."
                   style={{
                     fontFamily: 'var(--mono)',
                     fontSize: 9.5,
@@ -1652,6 +1653,8 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
                     textTransform: 'uppercase',
                     color: 'var(--ink-3)',
                     marginTop: 2,
+                    cursor: 'help',
+                    borderBottom: '1px dashed var(--ink-3)',
                   }}
                 >
                   similaridade
