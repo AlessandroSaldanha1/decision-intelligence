@@ -105,7 +105,7 @@ Retorne APENAS JSON válido, sem markdown, no formato exato:
 Regras:
 - "projects": máximo 3; use EXATAMENTE o nome da task, lista ou space como "name" — nunca invente um nome; sim entre 60-99 baseado na relevância real; tc="var(--clay)" para problemas/incidentes, tc="var(--sage)" para soluções; só inclua um card se houver uma task real correspondente na lista acima
 - "people": use SOMENTE nomes que aparecem no campo "responsáveis" das tasks acima, máximo 4; se não houver, retorne array vazio
-- "teams": use SOMENTE os nomes de space ou lista que aparecem nas tasks acima, máximo 5
+- "teams": times ou áreas impactadas — use SOMENTE nomes de equipes, áreas ou departamentos que aparecem nas tasks (ex: "Time de Dados", "Backend", "Produto"). Nunca inclua nomes de sprints, listas, datas ou versões. Se não houver times identificáveis, retorne array vazio
 - "lessons": máximo 4 lições concretas e diretas derivadas das tasks — sem generalizar além do que está escrito
 - "counts.incidentes": tasks com status de erro/bug/incident
 - "counts.regras": tasks com regras de negócio identificadas
