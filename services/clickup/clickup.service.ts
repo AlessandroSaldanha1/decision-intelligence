@@ -140,29 +140,28 @@ export class ClickUpService {
 
     const client = createClickUpClient(this.token)
 
-    const spacesRes = await client.get(`/team/${workspaceId}/space?archived=false`)
-    const spaces: ClickUpSpace[] = spacesRes.data.spaces ?? []
+    // Fetch 3 pages of tasks to count unique spaces and lists from task metadata.
+    // This works even when the /space endpoint is restricted (guest/limited member tokens).
+    const uniqueSpaces = new Set<string>()
+    const uniqueLists = new Set<string>()
+    let tasksCount = 0
 
-    let listsCount = 0
-    for (const space of spaces.slice(0, 5)) {
+    for (let page = 0; page < 3; page++) {
       try {
-        const fl = await client.get(`/space/${space.id}/list?archived=false`)
-        listsCount += (fl.data.lists ?? []).length
-      } catch { /* ok */ }
-      try {
-        const fd = await client.get(`/space/${space.id}/folder?archived=false`)
-        for (const folder of fd.data.folders ?? []) {
-          listsCount += (folder.lists ?? []).length
+        const { data } = await client.get(
+          `/team/${workspaceId}/task?page=${page}&subtasks=false&include_closed=true`
+        )
+        const batch: ClickUpTask[] = data.tasks ?? []
+        if (!batch.length) break
+        tasksCount += batch.length
+        for (const t of batch) {
+          if (t.space?.id) uniqueSpaces.add(t.space.id)
+          if (t.list?.id) uniqueLists.add(t.list.id)
         }
-      } catch { /* ok */ }
+        if (batch.length < 100) break // last page
+      } catch { break }
     }
 
-    let tasksCount = 0
-    try {
-      const tr = await client.get(`/team/${workspaceId}/task?page=0&subtasks=false&include_closed=true`)
-      tasksCount = (tr.data.tasks ?? []).length
-    } catch { /* ok */ }
-
-    return { spaces: spaces.length, lists: listsCount, tasks: tasksCount }
+    return { spaces: uniqueSpaces.size, lists: uniqueLists.size, tasks: tasksCount }
   }
 }

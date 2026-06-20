@@ -537,9 +537,9 @@ interface SidebarProps {
 function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spaces: number; lists: number; tasks: number } | null }) {
   const liveKnowledge = stats
     ? [
-        { n: stats.tasks >= 100 ? '100+' : stats.tasks > 0 ? String(stats.tasks) : orgKnowledge[0].n, l: 'tasks indexadas' },
-        { n: stats.spaces > 0 ? String(stats.spaces) : orgKnowledge[1].n, l: 'projetos indexados' },
-        { n: stats.lists > 0 ? String(stats.lists) : orgKnowledge[2].n, l: 'listas indexadas' },
+        { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'tasks indexadas' },
+        { n: String(stats.spaces), l: 'spaces indexados' },
+        { n: String(stats.lists), l: 'listas indexadas' },
         { n: orgKnowledge[3].n, l: 'decisões catalogadas' },
       ]
     : orgKnowledge;
@@ -1275,9 +1275,9 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             >
               {(stats
                 ? [
-                    { n: stats.spaces > 0 ? String(stats.spaces) : '—', l: 'Spaces' },
-                    { n: stats.lists > 0 ? String(stats.lists) : '—', l: 'Lists' },
-                    { n: stats.tasks >= 100 ? '100+' : stats.tasks > 0 ? String(stats.tasks) : '—', l: 'Tasks' },
+                    { n: String(stats.spaces), l: 'Spaces' },
+                    { n: String(stats.lists), l: 'Lists' },
+                    { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'Tasks' },
                     { n: '—', l: 'Comentários' },
                   ]
                 : memoryMetrics
