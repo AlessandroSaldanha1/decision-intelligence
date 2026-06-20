@@ -60,14 +60,14 @@ const orgKnowledge = [
   { n: '1.284', l: 'tasks indexadas' },
   { n: '92', l: 'projetos indexados' },
   { n: '48.000', l: 'comentários analisados' },
-  { n: '7.300', l: 'decisões catalogadas' },
+  { n: '7.300', l: 'insights catalogados' },
 ];
 
 const intelGen = [
-  { n: '312', l: 'riscos evitados' },
+  { n: '312', l: 'riscos identificados' },
   { n: '194', l: 'requisitos enriquecidos' },
   { n: '76', l: 'incidentes reaproveitados' },
-  { n: '88%', l: 'redução de ambiguidades' },
+  { n: '88%', l: 'score de enriquecimento contextual' },
 ];
 
 const connectedSources = ['ClickUp'];
@@ -398,7 +398,7 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
         { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'tasks indexadas' },
         { n: String(stats.spaces), l: 'spaces indexados' },
         { n: String(stats.lists), l: 'listas indexadas' },
-        { n: orgKnowledge[3].n, l: 'decisões catalogadas' },
+        { n: orgKnowledge[3].n, l: 'insights catalogados' },
       ]
     : orgKnowledge;
   const cellStyle: React.CSSProperties = {
