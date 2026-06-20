@@ -57,17 +57,17 @@ interface PublishError {
 // ─── Static data ─────────────────────────────────────────────────────────────
 
 const orgKnowledge = [
-  { n: '1.284', l: 'tasks indexadas' },
-  { n: '92', l: 'projetos indexados' },
-  { n: '48.000', l: 'comentários analisados' },
-  { n: '7.300', l: 'insights catalogados' },
+  { n: '1.284', l: 'tasks indexadas', tip: 'Total de tasks do ClickUp lidas e indexadas pelo sistema para busca e contexto.' },
+  { n: '92', l: 'projetos indexados', tip: 'Número de espaços e projetos distintos encontrados no workspace do ClickUp.' },
+  { n: '48.000', l: 'comentários analisados', tip: 'Comentários de tasks processados para extração de conhecimento e contexto histórico.' },
+  { n: '7.300', l: 'insights catalogados', tip: 'Padrões, decisões e aprendizados extraídos das tasks e catalogados para uso futuro.' },
 ];
 
 const intelGen = [
-  { n: '312', l: 'riscos identificados' },
-  { n: '194', l: 'requisitos enriquecidos' },
-  { n: '76', l: 'incidentes reaproveitados' },
-  { n: '88%', l: 'score de enriquecimento contextual' },
+  { n: '312', l: 'riscos identificados', tip: 'Riscos detectados pelo assistente IA ao analisar demandas com base no histórico organizacional.' },
+  { n: '194', l: 'requisitos enriquecidos', tip: 'Requisitos que receberam contexto adicional com base em experiências anteriores similares.' },
+  { n: '76', l: 'incidentes reaproveitados', tip: 'Ocorrências passadas usadas como referência para enriquecer análises de novas demandas.' },
+  { n: '88%', l: 'score de enriquecimento contextual', tip: 'Percentual médio de enriquecimento contextual aplicado às demandas — quanto o histórico organizacional contribuiu para as análises.' },
 ];
 
 const connectedSources = ['ClickUp'];
@@ -400,10 +400,10 @@ interface SidebarProps {
 function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spaces: number; lists: number; tasks: number } | null }) {
   const liveKnowledge = stats
     ? [
-        { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'tasks indexadas' },
-        { n: String(stats.spaces), l: 'spaces indexados' },
-        { n: String(stats.lists), l: 'listas indexadas' },
-        { n: orgKnowledge[3].n, l: 'insights catalogados' },
+        { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'tasks indexadas', tip: orgKnowledge[0].tip },
+        { n: String(stats.spaces), l: 'spaces indexados', tip: orgKnowledge[1].tip },
+        { n: String(stats.lists), l: 'listas indexadas', tip: orgKnowledge[1].tip },
+        { n: orgKnowledge[3].n, l: 'insights catalogados', tip: orgKnowledge[3].tip },
       ]
     : orgKnowledge;
   const cellStyle: React.CSSProperties = {
@@ -600,22 +600,12 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            <div style={cellStyle}>
-              <div style={numStyle}>{liveKnowledge[0].n}</div>
-              <div style={labelStyleCell}>{liveKnowledge[0].l}</div>
-            </div>
-            <div style={cellStyleLast}>
-              <div style={numStyle}>{liveKnowledge[1].n}</div>
-              <div style={labelStyleCell}>{liveKnowledge[1].l}</div>
-            </div>
-            <div style={cellStyle}>
-              <div style={numStyle}>{liveKnowledge[2].n}</div>
-              <div style={labelStyleCell}>{liveKnowledge[2].l}</div>
-            </div>
-            <div style={cellStyleLast}>
-              <div style={numStyle}>{liveKnowledge[3].n}</div>
-              <div style={labelStyleCell}>{liveKnowledge[3].l}</div>
-            </div>
+            {liveKnowledge.map((item, i) => (
+              <div key={i} style={i % 2 === 0 ? cellStyle : cellStyleLast}>
+                <div style={numStyle}>{item.n}</div>
+                <div title={item.tip} style={{ ...labelStyleCell, cursor: item.tip ? 'help' : undefined, borderBottom: item.tip ? '1px dashed currentColor' : undefined, display: 'inline-block' }}>{item.l}</div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -650,22 +640,12 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            <div style={cellStyleInk}>
-              <div style={numStyleInk}>{intelGen[0].n}</div>
-              <div style={labelStyleInk}>{intelGen[0].l}</div>
-            </div>
-            <div style={cellStyleInkLast}>
-              <div style={numStyleInk}>{intelGen[1].n}</div>
-              <div style={labelStyleInk}>{intelGen[1].l}</div>
-            </div>
-            <div style={cellStyleInk}>
-              <div style={numStyleInk}>{intelGen[2].n}</div>
-              <div style={labelStyleInk}>{intelGen[2].l}</div>
-            </div>
-            <div style={cellStyleInkLast}>
-              <div style={numStyleInk}>{intelGen[3].n}</div>
-              <div style={labelStyleInk}>{intelGen[3].l}</div>
-            </div>
+            {intelGen.map((item, i) => (
+              <div key={i} style={i % 2 === 0 ? cellStyleInk : cellStyleInkLast}>
+                <div style={numStyleInk}>{item.n}</div>
+                <div title={item.tip} style={{ ...labelStyleInk, cursor: 'help', borderBottom: '1px dashed currentColor', display: 'inline-block' }}>{item.l}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
