@@ -59,7 +59,6 @@ interface PublishError {
 const orgKnowledge = [
   { n: '1.284', l: 'tasks indexadas', tip: 'Total de tasks do ClickUp lidas e indexadas pelo sistema para busca e contexto.' },
   { n: '92', l: 'projetos indexados', tip: 'Número de espaços e projetos distintos encontrados no workspace do ClickUp.' },
-  { n: '48.000', l: 'comentários analisados', tip: 'Comentários de tasks processados para extração de conhecimento e contexto histórico.' },
   { n: '7.300', l: 'insights catalogados', tip: 'Padrões, decisões e aprendizados extraídos das tasks e catalogados para uso futuro.' },
 ];
 
@@ -167,15 +166,15 @@ const s = {
   card: {
     background: 'var(--paper)',
     border: '1px solid var(--line)',
-    borderRadius: 12,
-    padding: '24px 28px',
+    borderRadius: 16,
+    padding: '24px',
   } as React.CSSProperties,
 
   cardDark: {
     background: 'var(--clay)',
     border: '1px solid var(--line-on-ink)',
-    borderRadius: 12,
-    padding: '24px 28px',
+    borderRadius: 16,
+    padding: '24px',
     color: 'var(--on-ink-1)',
   } as React.CSSProperties,
 
@@ -206,6 +205,7 @@ const s = {
     cursor: 'pointer',
     border: 'none',
     transition: 'opacity .15s',
+    minHeight: 48,
   } as React.CSSProperties,
 
   btnPrimary: {
@@ -215,7 +215,7 @@ const s = {
 
   btnGhost: {
     background: 'transparent',
-    color: 'var(--ink-2)',
+    color: 'var(--clay)',
     border: '1px solid var(--line-strong)',
   } as React.CSSProperties,
 
@@ -405,7 +405,7 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
         { n: stats.tasks >= 100 ? `${stats.tasks}+` : String(stats.tasks), l: 'tasks indexadas', tip: orgKnowledge[0].tip },
         { n: String(stats.spaces), l: 'spaces indexados', tip: orgKnowledge[1].tip },
         { n: String(stats.lists), l: 'listas indexadas', tip: orgKnowledge[1].tip },
-        { n: orgKnowledge[3].n, l: 'insights catalogados', tip: orgKnowledge[3].tip },
+        { n: orgKnowledge[2].n, l: 'insights catalogados', tip: orgKnowledge[2].tip },
       ]
     : orgKnowledge;
   const cellStyle: React.CSSProperties = {
@@ -601,7 +601,7 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
             border: '1px solid var(--line)',
             borderRadius: 16,
             overflow: 'hidden',
-            background: 'var(--ink)',
+            background: 'var(--clay)',
             color: 'var(--on-ink-1)',
           }}
         >
@@ -668,7 +668,7 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
                 fontFamily: 'var(--mono)',
                 fontSize: 12,
                 color: 'var(--ink)',
-                border: '1px solid rgba(74,222,128,0.45)',
+                border: '1px solid rgba(30,122,92,0.4)',
                 borderRadius: 100,
                 padding: '5px 13px',
                 display: 'flex',
@@ -800,7 +800,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             boxSizing: 'border-box',
             outline: 'none',
             boxShadow: textareaFocused ? '0 0 0 3px rgba(36,75,107,0.28)' : 'none',
-            transition: 'border-color .15s, box-shadow .15s',
+            transition: 'opacity .15s',
           }}
         />
       </div>
@@ -918,6 +918,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
                   maxWidth: 320,
                   width: '100%',
                   outline: 'none',
+                  minHeight: 48,
                 }}
               >
                 {workspaces.length > 0 ? (
@@ -987,7 +988,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
                           color: on ? 'var(--paper)' : 'transparent',
                           fontSize: 12,
                           fontWeight: 700,
-                          transition: 'all .15s',
+                          transition: 'opacity .15s',
                         }}
                       >
                         ✓
@@ -1027,9 +1028,9 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             {/* Dark memory card */}
             <div
               style={{
-                border: '1px solid var(--line)',
+                border: '1px solid var(--line-on-ink)',
                 borderRadius: 16,
-                background: 'var(--ink)',
+                background: 'var(--clay)',
                 color: 'var(--on-ink-1)',
                 padding: '22px 24px',
               }}
@@ -1184,6 +1185,7 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
         <button
           className="di-btn-primary"
           onClick={runSearch}
+          disabled={!demand.trim()}
           style={{
             fontWeight: 600,
             fontSize: 16,
@@ -1195,7 +1197,8 @@ function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, s
             display: 'inline-flex',
             alignItems: 'center',
             gap: 11,
-            cursor: 'pointer',
+            cursor: demand.trim() ? 'pointer' : 'not-allowed',
+            opacity: demand.trim() ? 1 : 0.4,
           }}
         >
           Buscar conhecimento organizacional{' '}
@@ -1263,7 +1266,7 @@ function LoadingQuip({ step }: { step: keyof typeof quipsByStep }) {
     <div style={{
       padding: '13px 18px',
       border: '1px solid var(--line)',
-      borderRadius: 10,
+      borderRadius: 16,
       background: 'var(--paper-2)',
       display: 'flex',
       alignItems: 'center',
@@ -1907,7 +1910,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
           style={{
             border: '1px solid var(--line)',
             borderRadius: 16,
-            background: 'var(--ink)',
+            background: 'var(--clay)',
             color: 'var(--on-ink-1)',
             padding: '26px 28px',
           }}
@@ -1962,8 +1965,8 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
             fontSize: 16,
             padding: '15px 30px',
             borderRadius: 8,
-            border: '1px solid var(--ink)',
-            background: 'var(--ink)',
+            border: '1px solid var(--clay)',
+            background: 'var(--clay)',
             color: 'var(--paper)',
             display: 'inline-flex',
             alignItems: 'center',
@@ -2049,7 +2052,7 @@ function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysi
       </p>
 
       {analysisState === 'done' && analysisError && (
-        <div style={{ border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.06)', borderRadius: 12, padding: '20px 24px', marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ border: '1px solid rgba(178,53,53,0.4)', background: 'rgba(178,53,53,0.06)', borderRadius: 16, padding: '20px 24px', marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 18 }}>⚠</span>
             <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Análise indisponível</span>
@@ -2318,8 +2321,8 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
       ) : artifactsError || !artifacts ? (
         /* ── Error state ── */
         <div style={{
-          border: '1px solid rgba(220,50,50,0.3)',
-          background: 'rgba(220,50,50,0.06)',
+          border: '1px solid rgba(178,53,53,0.3)',
+          background: 'rgba(178,53,53,0.06)',
           borderRadius: 16,
           padding: '32px 28px',
           display: 'flex',
@@ -2646,8 +2649,8 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
       {/* Error state */}
       {!loading && (planError || !d) && (
         <div style={{
-          border: '1px solid rgba(220,50,50,0.3)',
-          background: 'rgba(220,50,50,0.06)',
+          border: '1px solid rgba(178,53,53,0.3)',
+          background: 'rgba(178,53,53,0.06)',
           borderRadius: 16,
           padding: '32px 28px',
           display: 'flex',
@@ -3411,7 +3414,7 @@ function PreviewScreen({ demand, artifacts, analysis, plan, workspace, workspace
               })()}
 
               {/* ── Destino da Publicação summary ── */}
-              <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--paper-2)', padding: '14px 16px' }}>
+              <div style={{ border: '1px solid var(--line)', borderRadius: 16, background: 'var(--paper-2)', padding: '14px 16px' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--clay)', marginBottom: 10 }}>
                   Destino da publicação
                 </div>
@@ -3449,6 +3452,7 @@ function PreviewScreen({ demand, artifacts, analysis, plan, workspace, workspace
                       color: 'var(--ink)',
                       outline: 'none',
                       cursor: 'pointer',
+                      minHeight: 48,
                     }}
                   >
                     <option value="to do">A fazer</option>
@@ -3474,6 +3478,7 @@ function PreviewScreen({ demand, artifacts, analysis, plan, workspace, workspace
                       color: 'var(--ink)',
                       outline: 'none',
                       cursor: 'pointer',
+                      minHeight: 48,
                     }}
                   >
                     <option value="1">Urgente</option>
@@ -3505,6 +3510,7 @@ function PreviewScreen({ demand, artifacts, analysis, plan, workspace, workspace
                     color: 'var(--ink)',
                     outline: 'none',
                     boxSizing: 'border-box',
+                    minHeight: 48,
                   }}
                 />
               </div>
@@ -3923,7 +3929,7 @@ function Sidebar({ screen, go, maxReached, onReset }: { screen: Screen; go: (s: 
                   background: circleBg,
                   border: `1.5px solid ${circleBorder}`,
                   boxShadow: circleGlow,
-                  transition: 'all .2s var(--ease)',
+                  transition: 'opacity .2s var(--ease)',
                 }}>
                   <span style={{
                     fontFamily: "'Material Symbols Outlined'",
@@ -3983,7 +3989,7 @@ function Sidebar({ screen, go, maxReached, onReset }: { screen: Screen; go: (s: 
             fontSize: 12.5,
             fontFamily: 'var(--mono)',
             letterSpacing: '0.03em',
-            transition: 'color .15s, background .15s',
+            transition: 'opacity .15s',
             width: '100%',
             textAlign: 'left',
           }}
@@ -4028,7 +4034,6 @@ function Sidebar({ screen, go, maxReached, onReset }: { screen: Screen; go: (s: 
           margin: 0,
         }}>
           92 projetos indexados<br />
-          48.000 comentários analisados<br />
           RAG · sincronizado há 2 min
         </p>
       </div>
@@ -4044,15 +4049,16 @@ const globalCss = `
     --paper: #FFFFFF;
     --paper-2: #F2F4F7;
     --paper-3: #ECEEF1;
-    --ink: #18222E;
+    --ink: #1F2933;
     --ink-soft: #2B3A47;
-    --ink-2: #45505F;
-    --ink-3: #5A6573;
+    --ink-2: #667085;
+    --ink-3: #98A2AE;
     --clay: #244B6B;
     --clay-deep: #1B3A53;
     --accent-ink: #2EC4B6;
     --sage: #1E7A5C;
     --ochre: #8A6418;
+    --warning: #F2B84B;
     --danger: #B23535;
     --danger-tint: #FBEAEA;
     --line: #D9DEE5;
@@ -4115,7 +4121,13 @@ const globalCss = `
 
   .di-btn-primary:hover { opacity: .88; }
   .di-btn-ghost:hover { background: var(--paper-2); }
-  .di-nav-btn:hover { background: var(--paper-2); color: var(--ink-2); }
+  .di-nav-btn:hover { background: var(--paper-2); }
+
+  *:focus-visible {
+    outline: 2px solid var(--clay);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -4148,15 +4160,10 @@ const SCREEN_INDEX: Partial<Record<Screen, number>> = {
   preview: 6, result: 6,
 };
 
-function getInitialMaxReached(): number {
-  if (typeof window === 'undefined') return 0;
-  try { return Number(localStorage.getItem('di-max-reached') ?? 0); } catch { return 0; }
-}
-
 export default function DIPage() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState<Screen>('dashboard');
-  const [maxReached, setMaxReached] = useState<number>(getInitialMaxReached);
+  const [maxReached, setMaxReached] = useState<number>(0);
   const [demand, setDemand] = useState('');
   const [workspace, setWorkspace] = useState('ANBIMA');
   const [workspaceId, setWorkspaceId] = useState('');
@@ -4325,11 +4332,7 @@ export default function DIPage() {
     (s: Screen) => {
       setScreen(s);
       const idx = SCREEN_INDEX[s] ?? 0;
-      setMaxReached((prev) => {
-        const next = Math.max(prev, idx);
-        try { localStorage.setItem('di-max-reached', String(next)); } catch { /* ignore */ }
-        return next;
-      });
+      setMaxReached((prev) => Math.max(prev, idx));
       if (mainRef.current) mainRef.current.scrollTop = 0;
       if (s === 'analysis' && analysisState === 'idle') runAnalysis();
       if (s === 'artifacts' && artifactsState === 'idle') runArtifacts();
@@ -4341,7 +4344,6 @@ export default function DIPage() {
   const resetTrail = useCallback(() => {
     setScreen('dashboard');
     setMaxReached(0);
-    try { localStorage.removeItem('di-max-reached'); } catch { /* ignore */ }
     setDemand('');
     setKb({});
     setAnalysisState('idle'); setAnalysis(null); setAnalysisError(null);
@@ -4353,6 +4355,7 @@ export default function DIPage() {
   }, []);
 
   const runSearch = useCallback(() => {
+    if (!demand.trim()) return;
     // Reset all generated states so a new demand always triggers fresh generation
     setAnalysisState('idle');
     setAnalysis(null);
@@ -4398,7 +4401,7 @@ export default function DIPage() {
         const res = await fetch('/api/platform/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand, publishConfig, artifacts, analysis }),
+          body: JSON.stringify({ demand, publishConfig, artifacts, analysis, plan }),
         });
 
         if (res.ok) {

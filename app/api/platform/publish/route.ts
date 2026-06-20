@@ -15,6 +15,15 @@ interface AnalysisSection {
   a: string
 }
 
+interface PlanGroup {
+  frente: string
+  items: string[]
+}
+
+interface PlanInput {
+  groups?: PlanGroup[]
+}
+
 interface PublishBody {
   demand: string
   publishConfig: {
@@ -30,15 +39,15 @@ interface PublishBody {
   }
   artifacts?: ArtifactsInput
   analysis?: AnalysisSection[]
+  plan?: PlanInput
 }
 
-function buildSubtasks(artifacts: ArtifactsInput | undefined) {
+function buildSubtasks(plan: PlanInput | undefined, artifacts: ArtifactsInput | undefined) {
+  if (plan?.groups?.length) {
+    return plan.groups.flatMap((g) => g.items.map((name) => ({ group: g.frente, name })))
+  }
   if (artifacts?.subtasks?.length) {
-    const groups = ['Backend', 'Frontend', 'QA', 'Produto']
-    return artifacts.subtasks.map((name, i) => ({
-      group: groups[i % groups.length],
-      name,
-    }))
+    return artifacts.subtasks.map((name) => ({ group: 'Geral', name }))
   }
   return []
 }
@@ -83,7 +92,7 @@ function buildComment(demand: string, analysis: AnalysisSection[] | undefined): 
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as PublishBody
-  const { demand, publishConfig: cfg, artifacts, analysis } = body
+  const { demand, publishConfig: cfg, artifacts, analysis, plan } = body
   const listId = cfg.listId.trim()
 
   if (isMockMode()) {
@@ -100,7 +109,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const subtasks = buildSubtasks(artifacts)
+  const subtasks = buildSubtasks(plan, artifacts)
   const token = env.clickup.apiToken
   const base = 'https://api.clickup.com/api/v2'
   const headers = { Authorization: token, 'Content-Type': 'application/json' }

@@ -103,8 +103,8 @@ ATENÇÃO: Baseie o plano EXCLUSIVAMENTE no conteúdo acima. Nunca mencione tóp
 Retorne APENAS JSON válido sem markdown:
 {
   "epic": "nome curto do épico (5-8 palavras)",
-  "usTitle": "Como [perfil], eu quero [ação] para [objetivo]",
-  "usDesc": "Descrição expandida da user story em 2-3 frases",
+  "usTitle": "Título da funcionalidade — imperativo, direto, 4-8 palavras (ex: 'Consultar posição consolidada por fundo', 'Exportar relatório de riscos em PDF')",
+  "usDesc": "Como [perfil], eu quero [ação clara e específica] para [benefício concreto]. 1-2 frases adicionais de contexto.",
   "groups": [
     { "frente": "Backend", "items": ["item 1", "item 2", "item 3"] },
     { "frente": "Frontend", "items": ["item 1", "item 2", "item 3"] },
