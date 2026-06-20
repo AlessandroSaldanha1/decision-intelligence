@@ -3733,13 +3733,6 @@ function ResultScreen({ publishState, publishStep, publishResult, publishError, 
             </a>
           )}
           <button
-            className="di-btn-ghost"
-            style={{ ...s.btn, ...s.btnGhost }}
-            onClick={() => go('dashboard')}
-          >
-            Ver histórico
-          </button>
-          <button
             style={{
               ...s.btn,
               background: 'var(--clay-deep)',
