@@ -44,7 +44,9 @@ function buildTaskContext(tasks: ClickUpTask[]): string {
     const status = t.status?.status ?? 'desconhecido'
     const assignees = t.assignees?.map((a) => a.username).join(', ') ?? ''
     const tags = t.tags?.map((tg) => (typeof tg === 'string' ? tg : tg.name)).join(', ') ?? ''
-    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
+    const list = t.list?.name ? ` [lista: ${t.list.name}]` : ''
+    const space = t.space?.name ? ` [space: ${t.space.name}]` : ''
+    return `${i + 1}. [${status.toUpperCase()}] ${t.name}${list}${space}${desc}${assignees ? ` (responsáveis: ${assignees})` : ''}${tags ? ` (tags: ${tags})` : ''}`
   }).join('\n')
 }
 
@@ -102,10 +104,10 @@ Retorne APENAS JSON válido, sem markdown, no formato exato:
 }
 
 Regras:
-- "projects": máximo 3, com sim entre 60-99 (baseado na relevância real), tc="var(--clay)" para problemas, tc="var(--sage)" para soluções
-- "people": extraia dos assignees reais das tasks, máximo 4
-- "teams": deduza dos espaços/tags/contexto, máximo 5
-- "lessons": máximo 4 lições concretas derivadas das tasks e da demanda
+- "projects": máximo 3; use EXATAMENTE o nome da task, lista ou space como "name" — nunca invente um nome; sim entre 60-99 baseado na relevância real; tc="var(--clay)" para problemas/incidentes, tc="var(--sage)" para soluções; só inclua um card se houver uma task real correspondente na lista acima
+- "people": use SOMENTE nomes que aparecem no campo "responsáveis" das tasks acima, máximo 4; se não houver, retorne array vazio
+- "teams": use SOMENTE os nomes de space ou lista que aparecem nas tasks acima, máximo 5
+- "lessons": máximo 4 lições concretas e diretas derivadas das tasks — sem generalizar além do que está escrito
 - "counts.incidentes": tasks com status de erro/bug/incident
 - "counts.regras": tasks com regras de negócio identificadas
 - Tudo em português`
