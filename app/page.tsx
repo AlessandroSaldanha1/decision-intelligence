@@ -378,7 +378,7 @@ interface PreviewProps {
   publishConfig: PublishConfig;
   setPublishConfig: React.Dispatch<React.SetStateAction<PublishConfig>>;
   go: GoFn;
-  doPublish: (forceMock: boolean) => void;
+  doPublish: () => void;
 }
 
 interface ResultProps {
@@ -388,7 +388,7 @@ interface ResultProps {
   publishError: PublishError | null;
   publishConfig: PublishConfig;
   go: GoFn;
-  doPublish: (forceMock: boolean) => void;
+  doPublish: () => void;
 }
 
 interface SidebarProps {
@@ -3562,7 +3562,7 @@ function PreviewScreen({ demand, artifacts, analysis, workspace, workspaceId, pu
         <button
           className="di-btn-primary"
           style={{ ...s.btn, ...s.btnPrimary }}
-          onClick={() => doPublish(false)}
+          onClick={() => doPublish()}
         >
           Publicar no ClickUp →
         </button>
@@ -3644,13 +3644,10 @@ function ResultScreen({ publishState, publishStep, publishResult, publishError, 
   }
 
   if (publishState === 'success' && publishResult) {
-    const isMock = publishResult.mode === 'mock';
-    const connColor = isMock ? 'var(--ochre)' : 'var(--sage)';
-    const connBg = isMock ? 'rgba(138,100,24,0.12)' : 'rgba(30,122,92,0.12)';
-    const connLabel = isMock ? 'DEMO MODE' : 'CLICKUP REAL';
-    const modeText = isMock
-      ? 'Modo demo: publicação simulada com sucesso.'
-      : 'Publicado no ClickUp real.';
+    const connColor = 'var(--sage)';
+    const connBg = 'rgba(30,122,92,0.12)';
+    const connLabel = 'CLICKUP REAL';
+    const modeText = 'Publicado com sucesso no ClickUp.';
 
     const resultRows = [
       { k: 'Task principal criada', v: publishResult.taskId },
@@ -3802,16 +3799,9 @@ function ResultScreen({ publishState, publishStep, publishResult, publishError, 
           <button
             className="di-btn-primary"
             style={{ ...s.btn, ...s.btnPrimary }}
-            onClick={() => doPublish(false)}
+            onClick={() => doPublish()}
           >
             Tentar novamente
-          </button>
-          <button
-            className="di-btn-ghost"
-            style={{ ...s.btn, ...s.btnGhost }}
-            onClick={() => doPublish(true)}
-          >
-            Publicar em modo demo
           </button>
         </div>
       </div>
@@ -4307,7 +4297,7 @@ export default function DIPage() {
   }, [demand, workspaceId, go]);
 
   const doPublish = useCallback(
-    async (forceMock: boolean) => {
+    async () => {
       setPublishState('loading');
       setPublishStep(0);
       setPublishResult(null);
@@ -4326,7 +4316,7 @@ export default function DIPage() {
         const res = await fetch('/api/platform/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand, publishConfig, forceMock, artifacts, analysis }),
+          body: JSON.stringify({ demand, publishConfig, artifacts, analysis }),
         });
 
         if (res.ok) {
@@ -4334,27 +4324,22 @@ export default function DIPage() {
           setPublishResult(data);
           setPublishState('success');
         } else {
-          setPublishResult({
-            mode: 'mock',
-            taskId: 'DI-2847',
-            taskUrl: null,
-            subtasksCreated: previewSubtasks.length,
-            commentCreated: true,
+          const errBody = await res.json().catch(() => ({})) as { error?: string };
+          setPublishError({
+            title: `Erro ${res.status}`,
+            detail: errBody.error ?? 'A publicação falhou. Verifique o token e a lista selecionada.',
           });
-          setPublishState('success');
+          setPublishState('error');
         }
       } catch {
-        setPublishResult({
-          mode: 'mock',
-          taskId: 'DI-2847',
-          taskUrl: null,
-          subtasksCreated: previewSubtasks.length,
-          commentCreated: true,
+        setPublishError({
+          title: 'Erro de rede',
+          detail: 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
         });
-        setPublishState('success');
+        setPublishState('error');
       }
     },
-    [demand, publishConfig]
+    [demand, publishConfig, artifacts, analysis]
   );
 
   const renderScreen = () => {

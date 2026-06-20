@@ -30,7 +30,6 @@ interface PublishBody {
   }
   artifacts?: ArtifactsInput
   analysis?: AnalysisSection[]
-  forceMock?: boolean
 }
 
 function buildSubtasks(artifacts: ArtifactsInput | undefined) {
@@ -84,22 +83,24 @@ function buildComment(demand: string, analysis: AnalysisSection[] | undefined): 
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as PublishBody
-  const { demand, publishConfig: cfg, artifacts, analysis, forceMock } = body
+  const { demand, publishConfig: cfg, artifacts, analysis } = body
   const listId = cfg.listId.trim()
-  const useMock = forceMock || isMockMode() || !listId
 
-  const subtasks = buildSubtasks(artifacts)
-
-  if (useMock) {
-    return NextResponse.json({
-      mode: 'mock',
-      taskId: 'DEMO-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
-      taskUrl: null,
-      subtasksCreated: cfg.optSubtasks ? subtasks.length : 0,
-      commentCreated: cfg.optComment,
-    })
+  if (isMockMode()) {
+    return NextResponse.json(
+      { error: 'Token do ClickUp não configurado. Adicione CLICKUP_API_TOKEN ao .env.local.' },
+      { status: 503 },
+    )
   }
 
+  if (!listId) {
+    return NextResponse.json(
+      { error: 'Nenhuma lista de destino selecionada. Escolha um List no passo de publicação.' },
+      { status: 400 },
+    )
+  }
+
+  const subtasks = buildSubtasks(artifacts)
   const token = env.clickup.apiToken
   const base = 'https://api.clickup.com/api/v2'
   const headers = { Authorization: token, 'Content-Type': 'application/json' }
