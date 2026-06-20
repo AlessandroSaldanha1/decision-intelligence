@@ -1545,10 +1545,9 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
             fontSize: 24,
             letterSpacing: '-0.01em',
             color: 'var(--ink)',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
+            maxHeight: 96,
+            overflowY: 'auto',
+            display: 'block',
           }}
         >
           {demand}
