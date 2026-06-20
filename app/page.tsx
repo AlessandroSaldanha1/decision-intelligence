@@ -3095,71 +3095,112 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
   );
 }
 
+// ─── Mock ClickUp hierarchy (swap for real API calls when ready) ──────────────
+
+interface CKList    { id: string; name: string }
+interface CKFolder  { name: string; lists: CKList[] }
+interface CKSpace   { name: string; folders: CKFolder[]; lists: CKList[] }
+interface CKWorkspace { name: string; spaces: CKSpace[] }
+
+const CK_MOCK: CKWorkspace[] = [
+  {
+    name: 'ANBIMA',
+    spaces: [
+      {
+        name: 'Atlas Fundos',
+        folders: [
+          { name: 'Sprint Backlog', lists: [{ id: 'l1', name: 'Sprint 12' }, { id: 'l2', name: 'Sprint 13' }, { id: 'l3', name: 'Sprint 14' }] },
+          { name: 'Product Backlog', lists: [{ id: 'l4', name: 'Backlog' }, { id: 'l5', name: 'Melhorias' }] },
+          { name: 'Refinamento',     lists: [{ id: 'l6', name: 'Refinamento Geral' }] },
+        ],
+        lists: [],
+      },
+      { name: 'RH Saúde',    folders: [{ name: 'Sprint Backlog', lists: [{ id: 'l7', name: 'Sprint 10' }, { id: 'l8', name: 'Sprint 11' }] }], lists: [] },
+      { name: 'APIs ANBIMA', folders: [],                                                                                                       lists: [{ id: 'l9', name: 'Backlog geral' }, { id: 'l10', name: 'Melhorias' }] },
+      { name: 'Compliance',  folders: [{ name: 'Melhorias', lists: [{ id: 'l11', name: 'Backlog compliance' }] }],                             lists: [] },
+    ],
+  },
+  {
+    name: 'Orla',
+    spaces: [
+      { name: 'Desenvolvimento', folders: [{ name: 'Sprint Backlog', lists: [{ id: 'l12', name: 'Sprint 5' }, { id: 'l13', name: 'Sprint 6' }] }], lists: [] },
+    ],
+  },
+  {
+    name: 'Sandbox',
+    spaces: [
+      { name: 'Testes', folders: [], lists: [{ id: 'l14', name: 'Lista de testes' }, { id: 'l15', name: 'Experimentos' }] },
+    ],
+  },
+];
+
+function getDefaultState(ws: CKWorkspace) {
+  const space   = ws.spaces[0];
+  const folder  = space?.folders[0] ?? null;
+  const lists   = folder ? folder.lists : (space?.lists ?? []);
+  return {
+    spaceName:  space?.name  ?? '',
+    folderName: folder?.name ?? '',
+    listId:     lists[0]?.id ?? '',
+    listName:   lists[0]?.name ?? '',
+  };
+}
+
 function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
 
-  const [spaces, setSpaces] = useState<SpaceOption[]>([]);
-  const [listsLoading, setListsLoading] = useState(false);
-  const [selectedSpaceId, setSelectedSpaceId] = useState('');
-  const [selectedFolderId, setSelectedFolderId] = useState('');
+  const defaultWs    = CK_MOCK[0];
+  const defaultState = getDefaultState(defaultWs);
+
+  const [selectedWorkspaceName, setSelectedWorkspaceName] = useState(defaultWs.name);
+  const [selectedSpaceName,     setSelectedSpaceName]     = useState(defaultState.spaceName);
+  const [selectedFolderName,    setSelectedFolderName]    = useState(defaultState.folderName);
+  const [selectedListName,      setSelectedListName]      = useState(defaultState.listName);
 
   useEffect(() => {
-    if (!workspaceId) return;
-    setListsLoading(true);
-    fetch(`/api/platform/lists?workspaceId=${encodeURIComponent(workspaceId)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { spaces: SpaceOption[] } | null) => {
-        if (data?.spaces?.length) {
-          setSpaces(data.spaces);
-          const firstSpace = data.spaces[0];
-          setSelectedSpaceId(firstSpace.id);
-          const firstFolder = firstSpace.folders[0];
-          if (firstFolder) {
-            setSelectedFolderId(firstFolder.id);
-            if (!publishConfig.listId && firstFolder.lists[0]) updateCfg('listId', firstFolder.lists[0].id);
-          } else if (firstSpace.lists[0]) {
-            setSelectedFolderId('__folderless__');
-            if (!publishConfig.listId) updateCfg('listId', firstSpace.lists[0].id);
-          }
-        }
-      })
-      .catch(() => {})
-      .finally(() => setListsLoading(false));
+    if (!publishConfig.listId) updateCfg('listId', defaultState.listId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId]);
+  }, []);
 
-  const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? null;
-  const availableFolders = selectedSpace?.folders ?? [];
-  const folderlessLists = selectedSpace?.lists ?? [];
-  const currentLists = selectedFolderId === '__folderless__'
-    ? folderlessLists
-    : (availableFolders.find((f) => f.id === selectedFolderId)?.lists ?? []);
+  const currentWs     = CK_MOCK.find((w) => w.name === selectedWorkspaceName) ?? CK_MOCK[0];
+  const currentSpace  = currentWs.spaces.find((s) => s.name === selectedSpaceName) ?? currentWs.spaces[0];
+  const hasFolders    = (currentSpace?.folders?.length ?? 0) > 0;
+  const currentFolder = hasFolders ? (currentSpace.folders.find((f) => f.name === selectedFolderName) ?? currentSpace.folders[0]) : null;
+  const currentLists  = currentFolder ? currentFolder.lists : (currentSpace?.lists ?? []);
 
-  const handleSpaceChange = (spaceId: string) => {
-    setSelectedSpaceId(spaceId);
-    const sp = spaces.find((s) => s.id === spaceId);
-    if (!sp) return;
-    const firstFolder = sp.folders[0];
-    if (firstFolder) {
-      setSelectedFolderId(firstFolder.id);
-      if (firstFolder.lists[0]) updateCfg('listId', firstFolder.lists[0].id);
-    } else if (sp.lists[0]) {
-      setSelectedFolderId('__folderless__');
-      updateCfg('listId', sp.lists[0].id);
-    } else {
-      setSelectedFolderId('');
-      updateCfg('listId', '');
-    }
+  const onWorkspaceChange = (name: string) => {
+    const ws = CK_MOCK.find((w) => w.name === name) ?? CK_MOCK[0];
+    const s  = getDefaultState(ws);
+    setSelectedWorkspaceName(name);
+    setSelectedSpaceName(s.spaceName);
+    setSelectedFolderName(s.folderName);
+    setSelectedListName(s.listName);
+    updateCfg('listId', s.listId);
   };
 
-  const handleFolderChange = (folderId: string) => {
-    setSelectedFolderId(folderId);
-    const lists = folderId === '__folderless__'
-      ? folderlessLists
-      : (availableFolders.find((f) => f.id === folderId)?.lists ?? []);
-    if (lists[0]) updateCfg('listId', lists[0].id);
-    else updateCfg('listId', '');
+  const onSpaceChange = (name: string) => {
+    const sp     = currentWs.spaces.find((s) => s.name === name) ?? currentWs.spaces[0];
+    const folder = sp.folders[0] ?? null;
+    const lists  = folder ? folder.lists : sp.lists;
+    setSelectedSpaceName(name);
+    setSelectedFolderName(folder?.name ?? '');
+    setSelectedListName(lists[0]?.name ?? '');
+    updateCfg('listId', lists[0]?.id ?? '');
+  };
+
+  const onFolderChange = (name: string) => {
+    const folder = currentSpace?.folders.find((f) => f.name === name);
+    const lists  = folder?.lists ?? currentSpace?.lists ?? [];
+    setSelectedFolderName(name);
+    setSelectedListName(lists[0]?.name ?? '');
+    updateCfg('listId', lists[0]?.id ?? '');
+  };
+
+  const onListChange = (id: string) => {
+    const list = currentLists.find((l) => l.id === id);
+    setSelectedListName(list?.name ?? '');
+    updateCfg('listId', id);
   };
 
   const connReal = publishConfig.listId.trim().length > 0;
@@ -3386,67 +3427,66 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
               Configuração do ClickUp
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Destination cascade */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'block' }}>
-                  DESTINO
-                </label>
-                {listsLoading ? (
-                  <div style={{ padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
-                    Carregando estrutura do ClickUp…
-                  </div>
-                ) : spaces.length > 0 ? (
-                  <>
-                    {/* Space */}
+
+              {/* ── Hierarchy selects ── */}
+              {(() => {
+                const selStyle: React.CSSProperties = { width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' };
+                const lbl = (t: string) => (
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 5, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>{t}</div>
+                );
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                    {/* Workspace */}
                     <div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>SPACE</div>
-                      <select
-                        value={selectedSpaceId}
-                        onChange={(e) => handleSpaceChange(e.target.value)}
-                        style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
-                      >
-                        {spaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      {lbl('Workspace')}
+                      <select value={selectedWorkspaceName} onChange={(e) => onWorkspaceChange(e.target.value)} style={selStyle}>
+                        {CK_MOCK.map((w) => <option key={w.name} value={w.name}>{w.name}</option>)}
                       </select>
                     </div>
-
-                    {/* Folder */}
-                    {(availableFolders.length > 0 || folderlessLists.length > 0) && (
+                    {/* Space */}
+                    <div>
+                      {lbl('Space')}
+                      <select value={selectedSpaceName} onChange={(e) => onSpaceChange(e.target.value)} style={selStyle}>
+                        {currentWs.spaces.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    {/* Folder (optional) */}
+                    {hasFolders && (
                       <div>
-                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>PASTA</div>
-                        <select
-                          value={selectedFolderId}
-                          onChange={(e) => handleFolderChange(e.target.value)}
-                          style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
-                        >
-                          {availableFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                          {folderlessLists.length > 0 && <option value="__folderless__">Sem pasta</option>}
+                        {lbl('Pasta')}
+                        <select value={selectedFolderName} onChange={(e) => onFolderChange(e.target.value)} style={selStyle}>
+                          {currentSpace.folders.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
                         </select>
                       </div>
                     )}
-
                     {/* List */}
-                    {currentLists.length > 0 && (
-                      <div>
-                        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', marginBottom: 4, letterSpacing: '0.06em' }}>LIST</div>
-                        <select
-                          value={publishConfig.listId}
-                          onChange={(e) => updateCfg('listId', e.target.value)}
-                          style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
-                        >
-                          {currentLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <input
-                    type="text"
-                    value={publishConfig.listId}
-                    onChange={(e) => updateCfg('listId', e.target.value)}
-                    placeholder="ID da list (ex: 9014388920)"
-                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '9px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                )}
+                    <div>
+                      {lbl('List')}
+                      <select value={publishConfig.listId} onChange={(e) => onListChange(e.target.value)} style={selStyle}>
+                        {currentLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Destino da Publicação summary ── */}
+              <div style={{ border: '1px solid var(--line)', borderRadius: 10, background: 'var(--paper-2)', padding: '14px 16px' }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--clay)', marginBottom: 10 }}>
+                  Destino da publicação
+                </div>
+                {[
+                  { k: 'Workspace', v: selectedWorkspaceName },
+                  { k: 'Space',     v: selectedSpaceName },
+                  ...(hasFolders ? [{ k: 'Pasta', v: selectedFolderName }] : []),
+                  { k: 'List',      v: selectedListName },
+                ].map((row, i, arr) => (
+                  <div key={row.k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < arr.length - 1 ? 6 : 0 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', flex: '0 0 64px', letterSpacing: '0.04em' }}>{row.k}</span>
+                    <span style={{ width: 1, height: 12, background: 'var(--line)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{row.v || '—'}</span>
+                  </div>
+                ))}
               </div>
 
               {/* Status + Priority 2-col */}
@@ -3547,7 +3587,7 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
 
               {/* Note */}
               <p style={{ fontFamily: 'var(--mono)', fontSize: 11, lineHeight: 1.6, color: 'var(--ink-3)', margin: 0 }}>
-                List ID, status, prioridade e tags ficam salvos neste navegador. O token vive no backend — o usuário final não precisa informá-lo. Com um List ID válido, a publicação tenta criar a estrutura no ClickUp real.
+                A publicação será realizada na lista selecionada acima.
               </p>
             </div>
           </div>
