@@ -365,10 +365,17 @@ interface PlanProps {
   go: GoFn;
 }
 
+interface ListOption {
+  id: string;
+  name: string;
+  spaceName: string;
+}
+
 interface PreviewProps {
   demand: string;
   artifacts: ArtifactsData | null;
   analysis: AnalysisSection[] | null;
+  workspaceId: string;
   publishConfig: PublishConfig;
   setPublishConfig: React.Dispatch<React.SetStateAction<PublishConfig>>;
   go: GoFn;
@@ -3056,9 +3063,28 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
   );
 }
 
-function PreviewScreen({ demand, artifacts, analysis, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
+function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
+
+  const [lists, setLists] = useState<ListOption[]>([]);
+  const [listsLoading, setListsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    setListsLoading(true);
+    fetch(`/api/platform/lists?workspaceId=${encodeURIComponent(workspaceId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { lists: ListOption[] } | null) => {
+        if (data?.lists?.length) {
+          setLists(data.lists);
+          if (!publishConfig.listId) updateCfg('listId', data.lists[0].id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setListsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
 
   const connReal = publishConfig.listId.trim().length > 0;
   const connLabel = connReal ? 'ClickUp real conectado' : 'Demo mode';
@@ -3284,29 +3310,36 @@ function PreviewScreen({ demand, artifacts, analysis, publishConfig, setPublishC
               Configuração do ClickUp
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* List ID */}
+              {/* List selector */}
               <div>
                 <label style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>
-                  LIST ID
+                  DESTINO
                 </label>
-                <input
-                  type="text"
-                  value={publishConfig.listId}
-                  onChange={(e) => updateCfg('listId', e.target.value)}
-                  placeholder="Ex: 9014388920"
-                  style={{
-                    width: '100%',
-                    fontFamily: 'var(--mono)',
-                    fontSize: 14,
-                    padding: '10px 13px',
-                    border: '1px solid var(--line-strong)',
-                    borderRadius: 8,
-                    background: 'var(--paper)',
-                    color: 'var(--ink)',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
+                {listsLoading ? (
+                  <div style={{ padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--mono)' }}>
+                    Carregando lists…
+                  </div>
+                ) : lists.length > 0 ? (
+                  <select
+                    value={publishConfig.listId}
+                    onChange={(e) => updateCfg('listId', e.target.value)}
+                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}
+                  >
+                    {lists.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.spaceName} · {l.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={publishConfig.listId}
+                    onChange={(e) => updateCfg('listId', e.target.value)}
+                    placeholder="ID da list (ex: 9014388920)"
+                    style={{ width: '100%', fontFamily: 'var(--mono)', fontSize: 13, padding: '10px 13px', border: '1px solid var(--line-strong)', borderRadius: 8, background: 'var(--paper)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                )}
               </div>
 
               {/* Status + Priority 2-col */}
@@ -4267,6 +4300,7 @@ export default function DIPage() {
             demand={demand}
             artifacts={artifacts}
             analysis={analysis}
+            workspaceId={workspaceId}
             publishConfig={publishConfig}
             setPublishConfig={setPublishConfig}
             go={go}

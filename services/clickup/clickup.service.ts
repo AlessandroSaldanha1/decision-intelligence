@@ -61,6 +61,14 @@ export class ClickUpService {
     return data.lists
   }
 
+  async getFolderlessLists(spaceId: string): Promise<ClickUpList[]> {
+    if (this.mock) return mockLists
+
+    const client = createClickUpClient(this.token)
+    const { data } = await client.get(`/space/${spaceId}/list?archived=false`)
+    return data.lists
+  }
+
   async getTasks(listId: string): Promise<ClickUpTask[]> {
     if (this.mock) return mockTasks
 
