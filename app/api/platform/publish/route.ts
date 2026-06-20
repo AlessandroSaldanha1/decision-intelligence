@@ -111,16 +111,20 @@ export async function POST(req: NextRequest) {
     : demand.slice(0, 120)
 
   try {
+    const priority = Number(cfg.priority)
+    const taskBody: Record<string, unknown> = {
+      name: taskName,
+      description: buildDescription(demand, cfg, artifacts),
+      tags,
+    }
+    // priority: ClickUp expects 1 (urgent) – 4 (low); skip if invalid
+    if (priority >= 1 && priority <= 4) taskBody.priority = priority
+    // status: each list has custom statuses — skip to use list default
+
     const taskRes = await fetch(`${base}/list/${encodeURIComponent(listId)}/task`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        name: taskName,
-        description: buildDescription(demand, cfg, artifacts),
-        status: cfg.status,
-        priority: Number(cfg.priority),
-        tags,
-      }),
+      body: JSON.stringify(taskBody),
     })
     if (!taskRes.ok) {
       const status = taskRes.status
@@ -140,8 +144,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             name: `${st.group} — ${st.name}`,
             parent: task.id,
-            status: cfg.status,
-            priority: Number(cfg.priority),
+            ...(priority >= 1 && priority <= 4 ? { priority } : {}),
             tags: ['decision-intelligence'],
           }),
         })

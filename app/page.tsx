@@ -152,7 +152,7 @@ const publishStepLabels = [
 const DEFAULT_PUBLISH_CONFIG: PublishConfig = {
   listId: '',
   status: 'to do',
-  priority: 'normal',
+  priority: '3',
   tags: 'decision-intelligence',
   optTask: true,
   optSubtasks: true,
