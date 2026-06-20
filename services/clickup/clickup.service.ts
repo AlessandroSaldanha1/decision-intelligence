@@ -121,4 +121,48 @@ export class ClickUpService {
       notify_all: false,
     })
   }
+
+  async searchTasks(workspaceId: string, query: string): Promise<ClickUpTask[]> {
+    if (this.mock) {
+      return mockTasks.filter((t) =>
+        t.name.toLowerCase().includes(query.toLowerCase().slice(0, 10))
+      )
+    }
+    const client = createClickUpClient(this.token)
+    const { data } = await client.get(
+      `/team/${workspaceId}/task?text=${encodeURIComponent(query)}&subtasks=true&include_closed=true&page=0`
+    )
+    return (data.tasks ?? []) as ClickUpTask[]
+  }
+
+  async getWorkspaceStats(workspaceId: string): Promise<{ spaces: number; lists: number; tasks: number }> {
+    if (this.mock) return { spaces: 12, lists: 43, tasks: 1284 }
+
+    const client = createClickUpClient(this.token)
+
+    const spacesRes = await client.get(`/team/${workspaceId}/space?archived=false`)
+    const spaces: ClickUpSpace[] = spacesRes.data.spaces ?? []
+
+    let listsCount = 0
+    for (const space of spaces.slice(0, 5)) {
+      try {
+        const fl = await client.get(`/space/${space.id}/list?archived=false`)
+        listsCount += (fl.data.lists ?? []).length
+      } catch { /* ok */ }
+      try {
+        const fd = await client.get(`/space/${space.id}/folder?archived=false`)
+        for (const folder of fd.data.folders ?? []) {
+          listsCount += (folder.lists ?? []).length
+        }
+      } catch { /* ok */ }
+    }
+
+    let tasksCount = 0
+    try {
+      const tr = await client.get(`/team/${workspaceId}/task?page=0&subtasks=false&include_closed=true`)
+      tasksCount = (tr.data.tasks ?? []).length
+    } catch { /* ok */ }
+
+    return { spaces: spaces.length, lists: listsCount, tasks: tasksCount }
+  }
 }

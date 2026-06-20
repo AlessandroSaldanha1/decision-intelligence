@@ -473,11 +473,15 @@ interface DemandProps {
   demand: string;
   setDemand: (v: string) => void;
   workspace: string;
+  workspaceId: string;
+  workspaces: { id: string; name: string }[];
   setWorkspace: (v: string) => void;
+  setWorkspaceId: (v: string) => void;
   kb: Record<string, boolean>;
   isOn: (key: string) => boolean;
   toggleKb: (key: string) => void;
   runSearch: () => void;
+  stats: { spaces: number; lists: number; tasks: number } | null;
 }
 
 interface SearchingProps {
@@ -530,7 +534,15 @@ interface SidebarProps {
 
 // ─── Screen components (defined outside DIPage) ───────────────────────────────
 
-function DashboardScreen({ go }: { go: (s: Screen) => void }) {
+function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spaces: number; lists: number; tasks: number } | null }) {
+  const liveKnowledge = stats
+    ? [
+        { n: stats.tasks >= 100 ? '100+' : stats.tasks > 0 ? String(stats.tasks) : orgKnowledge[0].n, l: 'tasks indexadas' },
+        { n: stats.spaces > 0 ? String(stats.spaces) : orgKnowledge[1].n, l: 'projetos indexados' },
+        { n: stats.lists > 0 ? String(stats.lists) : orgKnowledge[2].n, l: 'listas indexadas' },
+        { n: orgKnowledge[3].n, l: 'decisões catalogadas' },
+      ]
+    : orgKnowledge;
   const cellStyle: React.CSSProperties = {
     padding: '24px 26px',
     borderRight: '1px solid var(--line)',
@@ -726,20 +738,20 @@ function DashboardScreen({ go }: { go: (s: Screen) => void }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <div style={cellStyle}>
-              <div style={numStyle}>{orgKnowledge[0].n}</div>
-              <div style={labelStyleCell}>{orgKnowledge[0].l}</div>
+              <div style={numStyle}>{liveKnowledge[0].n}</div>
+              <div style={labelStyleCell}>{liveKnowledge[0].l}</div>
             </div>
             <div style={cellStyleLast}>
-              <div style={numStyle}>{orgKnowledge[1].n}</div>
-              <div style={labelStyleCell}>{orgKnowledge[1].l}</div>
+              <div style={numStyle}>{liveKnowledge[1].n}</div>
+              <div style={labelStyleCell}>{liveKnowledge[1].l}</div>
             </div>
             <div style={cellStyle}>
-              <div style={numStyle}>{orgKnowledge[2].n}</div>
-              <div style={labelStyleCell}>{orgKnowledge[2].l}</div>
+              <div style={numStyle}>{liveKnowledge[2].n}</div>
+              <div style={labelStyleCell}>{liveKnowledge[2].l}</div>
             </div>
             <div style={cellStyleLast}>
-              <div style={numStyle}>{orgKnowledge[3].n}</div>
-              <div style={labelStyleCell}>{orgKnowledge[3].l}</div>
+              <div style={numStyle}>{liveKnowledge[3].n}</div>
+              <div style={labelStyleCell}>{liveKnowledge[3].l}</div>
             </div>
           </div>
         </div>
@@ -841,7 +853,7 @@ function DashboardScreen({ go }: { go: (s: Screen) => void }) {
   );
 }
 
-function DemandScreen({ demand, setDemand, workspace, setWorkspace, isOn, toggleKb, runSearch }: DemandProps) {
+function DemandScreen({ demand, setDemand, workspace, workspaceId, workspaces, setWorkspace, setWorkspaceId, isOn, toggleKb, runSearch, stats }: DemandProps) {
   const [textareaFocused, setTextareaFocused] = useState(false);
 
   const selectedKbLabels = kbDefs.filter((kd) => isOn(kd.key)).map((kd) => kd.label);
@@ -1031,8 +1043,18 @@ function DemandScreen({ demand, setDemand, workspace, setWorkspace, isOn, toggle
                 Workspace
               </label>
               <select
-                value={workspace}
-                onChange={(e) => setWorkspace(e.target.value)}
+                value={workspaceId || workspace}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (workspaces.length > 0) {
+                    const found = workspaces.find((w) => w.id === val);
+                    setWorkspaceId(val);
+                    setWorkspace(found?.name ?? val);
+                  } else {
+                    setWorkspace(val);
+                    setWorkspaceId(val);
+                  }
+                }}
                 style={{
                   fontFamily: 'var(--sans)',
                   fontSize: 16,
@@ -1047,10 +1069,18 @@ function DemandScreen({ demand, setDemand, workspace, setWorkspace, isOn, toggle
                   outline: 'none',
                 }}
               >
-                <option value="ANBIMA">ANBIMA</option>
-                <option value="Orla">Orla</option>
-                <option value="Cliente XPTO">Cliente XPTO</option>
-                <option value="Sandbox">Sandbox</option>
+                {workspaces.length > 0 ? (
+                  workspaces.map((w) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="ANBIMA">ANBIMA</option>
+                    <option value="Orla">Orla</option>
+                    <option value="Cliente XPTO">Cliente XPTO</option>
+                    <option value="Sandbox">Sandbox</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -1243,7 +1273,15 @@ function DemandScreen({ demand, setDemand, workspace, setWorkspace, isOn, toggle
                 padding: '8px 22px',
               }}
             >
-              {memoryMetrics.map((m, i) => (
+              {(stats
+                ? [
+                    { n: stats.spaces > 0 ? String(stats.spaces) : '—', l: 'Spaces' },
+                    { n: stats.lists > 0 ? String(stats.lists) : '—', l: 'Lists' },
+                    { n: stats.tasks >= 100 ? '100+' : stats.tasks > 0 ? String(stats.tasks) : '—', l: 'Tasks' },
+                    { n: '—', l: 'Comentários' },
+                  ]
+                : memoryMetrics
+              ).map((m, i, arr) => (
                 <div
                   key={i}
                   style={{
@@ -1252,7 +1290,7 @@ function DemandScreen({ demand, setDemand, workspace, setWorkspace, isOn, toggle
                     gap: 12,
                     padding: '10px 0',
                     borderBottom:
-                      i < memoryMetrics.length - 1 ? '1px solid var(--line-soft)' : 'none',
+                      i < arr.length - 1 ? '1px solid var(--line-soft)' : 'none',
                   }}
                 >
                   <span
@@ -3907,6 +3945,9 @@ export default function DIPage() {
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [demand, setDemand] = useState('Permitir alteração de vigência');
   const [workspace, setWorkspace] = useState('ANBIMA');
+  const [workspaceId, setWorkspaceId] = useState('');
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
+  const [stats, setStats] = useState<{ spaces: number; lists: number; tasks: number } | null>(null);
   const [kb, setKb] = useState<Record<string, boolean>>({});
 
   const [analysisState, setAnalysisState] = useState<'idle' | 'loading' | 'done'>('idle');
@@ -3931,6 +3972,31 @@ export default function DIPage() {
     }
   }, [publishConfig]);
 
+  // Load real ClickUp workspaces on mount
+  useEffect(() => {
+    fetch('/api/clickup/workspaces')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { workspaces: { id: string; name: string }[] } | null) => {
+        if (data?.workspaces?.length) {
+          setWorkspaces(data.workspaces);
+          setWorkspaceId(data.workspaces[0].id);
+          setWorkspace(data.workspaces[0].name);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load workspace stats when workspaceId changes
+  useEffect(() => {
+    if (!workspaceId) return;
+    fetch(`/api/clickup/stats?workspaceId=${workspaceId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { spaces: number; lists: number; tasks: number } | null) => {
+        if (data) setStats(data);
+      })
+      .catch(() => {});
+  }, [workspaceId]);
+
   const isOn = (key: string) => kb[key] !== false;
   const toggleKb = (key: string) => setKb((prev) => ({ ...prev, [key]: !isOn(key) }));
 
@@ -3941,7 +4007,7 @@ export default function DIPage() {
         fetch('/api/platform/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand }),
+          body: JSON.stringify({ demand, workspaceId }),
         }),
         new Promise<void>((r) => setTimeout(r, 1400)),
       ]);
@@ -3955,7 +4021,7 @@ export default function DIPage() {
       setAnalysis(analysisFallback);
     }
     setAnalysisState('done');
-  }, [demand]);
+  }, [demand, workspaceId]);
 
   const runArtifacts = useCallback(async () => {
     setArtifactsState('loading');
@@ -3964,7 +4030,7 @@ export default function DIPage() {
         fetch('/api/platform/artifacts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ demand }),
+          body: JSON.stringify({ demand, workspaceId }),
         }),
         new Promise<void>((r) => setTimeout(r, 1400)),
       ]);
@@ -3978,7 +4044,7 @@ export default function DIPage() {
       setArtifacts(artifactsFallback);
     }
     setArtifactsState('done');
-  }, [demand]);
+  }, [demand, workspaceId]);
 
   const go = useCallback(
     (s: Screen) => {
@@ -4049,18 +4115,22 @@ export default function DIPage() {
   const renderScreen = () => {
     switch (screen) {
       case 'dashboard':
-        return <DashboardScreen go={go} />;
+        return <DashboardScreen go={go} stats={stats} />;
       case 'demand':
         return (
           <DemandScreen
             demand={demand}
             setDemand={setDemand}
             workspace={workspace}
+            workspaceId={workspaceId}
+            workspaces={workspaces}
             setWorkspace={setWorkspace}
+            setWorkspaceId={setWorkspaceId}
             kb={kb}
             isOn={isOn}
             toggleKb={toggleKb}
             runSearch={runSearch}
+            stats={stats}
           />
         );
       case 'searching':

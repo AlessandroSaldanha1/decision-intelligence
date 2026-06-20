@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { env, isClaudeMockMode } from '@/lib/config/env'
+import { env, isClaudeMockMode, isMockMode } from '@/lib/config/env'
+import { ClickUpService } from '@/services/clickup/clickup.service'
+import type { ClickUpTask } from '@/types/clickup'
 
 const FALLBACK = {
   userStory: 'Como analista de operações, eu quero alterar a vigência de um fundo exigindo justificativa e análise de impacto, para que mudanças sensíveis sejam rastreáveis e não gerem incidentes de PL/Cota.',
@@ -31,17 +33,51 @@ const FALLBACK = {
   ],
 }
 
+function buildTaskContext(tasks: ClickUpTask[]): string {
+  if (!tasks.length) return 'Nenhuma task similar encontrada no histórico organizacional.'
+
+  return tasks
+    .slice(0, 10)
+    .map((t, i) => {
+      const desc = t.description ? ` — ${t.description.slice(0, 200)}` : ''
+      const status = t.status?.status ?? 'desconhecido'
+      const tags = t.tags?.map((tg) => (typeof tg === 'string' ? tg : tg.name)).join(', ') ?? ''
+      return `${i + 1}. [${status.toUpperCase()}] ${t.name}${desc}${tags ? ` (tags: ${tags})` : ''}`
+    })
+    .join('\n')
+}
+
 export async function POST(req: NextRequest) {
-  const { demand } = (await req.json()) as { demand: string }
+  const { demand, workspaceId } = (await req.json()) as { demand: string; workspaceId?: string }
 
   if (isClaudeMockMode()) {
     return NextResponse.json(FALLBACK)
   }
 
+  // Build real organizational context from ClickUp
+  let orgContext = ''
+  if (workspaceId && !isMockMode()) {
+    try {
+      const svc = new ClickUpService()
+      const tasks = await svc.searchTasks(workspaceId, demand)
+      orgContext = buildTaskContext(tasks)
+    } catch {
+      orgContext = 'Erro ao buscar histórico organizacional no ClickUp.'
+    }
+  } else {
+    orgContext = [
+      '1. Projeto Atlas Fundos: Mudança de vigência impactou PL/Cota → Incidente em produção.',
+      '2. Projeto Previdência: Ausência de justificativa obrigatória → Falha de auditoria.',
+      '3. Projeto Cadastro: Análise de impacto antes da aplicação → Redução de chamados.',
+    ].join('\n')
+  }
+
   const client = new Anthropic({ apiKey: env.anthropic.apiKey })
 
-  const prompt = `Com base na demanda "${demand}" e no conhecimento organizacional (mudança de vigência que impactou PL/Cota gerando incidente em produção; ausência de justificativa obrigatória causando falha de auditoria; análise de impacto antes da aplicação reduziu chamados; lições: sempre exigir justificativa, não alterar fundos encerrados, validar impacto em entidades filhas, auditar alterações sensíveis), gere artefatos de especificação enriquecidos.
-Responda APENAS com JSON válido, sem markdown, no formato exato:
+  const prompt = `Com base na demanda "${demand}" e no histórico organizacional do ClickUp:
+${orgContext}
+
+Gere artefatos de especificação enriquecidos. Responda APENAS com JSON válido, sem markdown, no formato exato:
 {"userStory":"Como ... eu quero ... para ...","bdd":["Dado ...","Quando ...","Então ...","E ..."],"testCases":["...","...","...","..."],"dod":["...","...","...","..."],"dependencies":["...","...","..."],"subtasks":["...","...","...","..."]}
 Tudo em português. O BDD em Gherkin (Dado/Quando/Então/E). 3 a 5 itens por lista.`
 
