@@ -135,7 +135,7 @@ const stepDefs = [
   { n: '01', label: 'Painel', key: 'dashboard' },
   { n: '02', label: 'Nova demanda', key: 'demand' },
   { n: '03', label: 'Conhecimento organizacional', key: 'insights' },
-  { n: '04', label: 'Análise Claude', key: 'analysis' },
+  { n: '04', label: 'Análise Assistente IA', key: 'analysis' },
   { n: '05', label: 'Artefatos', key: 'artifacts' },
   { n: '06', label: 'Plano de entrega', key: 'plan' },
   { n: '07', label: 'Publicar no ClickUp', key: 'preview' },
@@ -1334,6 +1334,12 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
           color: 'var(--ink-3)',
           margin: '16px 0 30px',
           letterSpacing: '0.04em',
+          maxHeight: 72,
+          overflowY: 'auto',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
         }}
       >
         &ldquo;{demand}&rdquo;
@@ -1539,6 +1545,10 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
             fontSize: 24,
             letterSpacing: '-0.01em',
             color: 'var(--ink)',
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
           }}
         >
           {demand}
@@ -1963,7 +1973,7 @@ function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysi
             whiteSpace: 'nowrap',
           }}
         >
-          04 / ANÁLISE CLAUDE
+          04 / ANÁLISE ASSISTENTE IA
         </span>
         <div style={{ flex: 1, height: 1, background: 'var(--line)' }} />
         <span
@@ -3258,7 +3268,7 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--clay)', marginBottom: 8 }}>
                 Comentário automático
               </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 220, overflowY: 'auto' }}>
                 {previewComment}
               </div>
             </div>
@@ -3726,7 +3736,7 @@ function Sidebar({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
     { n: '01', label: 'Painel', key: 'dashboard' },
     { n: '02', label: 'Nova demanda', key: 'demand' },
     { n: '03', label: 'Conhecimento organizacional', key: 'insights' },
-    { n: '04', label: 'Análise Claude', key: 'analysis' },
+    { n: '04', label: 'Análise Assistente IA', key: 'analysis' },
     { n: '05', label: 'Artefatos', key: 'artifacts' },
     { n: '06', label: 'Plano de entrega', key: 'plan' },
     { n: '07', label: 'Publicar no ClickUp', key: 'preview' },
