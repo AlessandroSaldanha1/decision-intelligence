@@ -373,6 +373,7 @@ interface PreviewProps {
   demand: string;
   artifacts: ArtifactsData | null;
   analysis: AnalysisSection[] | null;
+  workspace: string;
   workspaceId: string;
   publishConfig: PublishConfig;
   setPublishConfig: React.Dispatch<React.SetStateAction<PublishConfig>>;
@@ -3095,95 +3096,48 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
   );
 }
 
-// ─── Mock ClickUp hierarchy (swap for real API calls when ready) ──────────────
-
-interface CKList    { id: string; name: string }
-interface CKFolder  { name: string; lists: CKList[] }
-interface CKSpace   { name: string; folders: CKFolder[]; lists: CKList[] }
-interface CKWorkspace { name: string; spaces: CKSpace[] }
-
-const CK_MOCK: CKWorkspace[] = [
-  {
-    name: 'ANBIMA',
-    spaces: [
-      {
-        name: 'Atlas Fundos',
-        folders: [
-          { name: 'Sprint Backlog', lists: [{ id: 'l1', name: 'Sprint 12' }, { id: 'l2', name: 'Sprint 13' }, { id: 'l3', name: 'Sprint 14' }] },
-          { name: 'Product Backlog', lists: [{ id: 'l4', name: 'Backlog' }, { id: 'l5', name: 'Melhorias' }] },
-          { name: 'Refinamento',     lists: [{ id: 'l6', name: 'Refinamento Geral' }] },
-        ],
-        lists: [],
-      },
-      { name: 'RH Saúde',    folders: [{ name: 'Sprint Backlog', lists: [{ id: 'l7', name: 'Sprint 10' }, { id: 'l8', name: 'Sprint 11' }] }], lists: [] },
-      { name: 'APIs ANBIMA', folders: [],                                                                                                       lists: [{ id: 'l9', name: 'Backlog geral' }, { id: 'l10', name: 'Melhorias' }] },
-      { name: 'Compliance',  folders: [{ name: 'Melhorias', lists: [{ id: 'l11', name: 'Backlog compliance' }] }],                             lists: [] },
-    ],
-  },
-  {
-    name: 'Orla',
-    spaces: [
-      { name: 'Desenvolvimento', folders: [{ name: 'Sprint Backlog', lists: [{ id: 'l12', name: 'Sprint 5' }, { id: 'l13', name: 'Sprint 6' }] }], lists: [] },
-    ],
-  },
-  {
-    name: 'Sandbox',
-    spaces: [
-      { name: 'Testes', folders: [], lists: [{ id: 'l14', name: 'Lista de testes' }, { id: 'l15', name: 'Experimentos' }] },
-    ],
-  },
-];
-
-function getDefaultState(ws: CKWorkspace) {
-  const space   = ws.spaces[0];
-  const folder  = space?.folders[0] ?? null;
-  const lists   = folder ? folder.lists : (space?.lists ?? []);
-  return {
-    spaceName:  space?.name  ?? '',
-    folderName: folder?.name ?? '',
-    listId:     lists[0]?.id ?? '',
-    listName:   lists[0]?.name ?? '',
-  };
-}
-
-function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
+function PreviewScreen({ demand, artifacts, analysis, workspace, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
 
-  const defaultWs    = CK_MOCK[0];
-  const defaultState = getDefaultState(defaultWs);
-
-  const [selectedWorkspaceName, setSelectedWorkspaceName] = useState(defaultWs.name);
-  const [selectedSpaceName,     setSelectedSpaceName]     = useState(defaultState.spaceName);
-  const [selectedFolderName,    setSelectedFolderName]    = useState(defaultState.folderName);
-  const [selectedListName,      setSelectedListName]      = useState(defaultState.listName);
+  const [ckSpaces,   setCkSpaces]   = useState<SpaceOption[]>([]);
+  const [ckLoading,  setCkLoading]  = useState(false);
+  const [selectedSpaceId,   setSelectedSpaceId]   = useState('');
+  const [selectedFolderName, setSelectedFolderName] = useState('');
+  const [selectedListName,   setSelectedListName]   = useState('');
 
   useEffect(() => {
-    if (!publishConfig.listId) updateCfg('listId', defaultState.listId);
+    if (!workspaceId) return;
+    setCkLoading(true);
+    fetch(`/api/platform/lists?workspaceId=${encodeURIComponent(workspaceId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { spaces: SpaceOption[] } | null) => {
+        if (!data?.spaces?.length) return;
+        setCkSpaces(data.spaces);
+        const sp     = data.spaces[0];
+        const folder = sp.folders[0] ?? null;
+        const lists  = folder ? folder.lists : sp.lists;
+        setSelectedSpaceId(sp.id);
+        setSelectedFolderName(folder?.name ?? '');
+        setSelectedListName(lists[0]?.name ?? '');
+        if (!publishConfig.listId && lists[0]) updateCfg('listId', lists[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setCkLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [workspaceId]);
 
-  const currentWs     = CK_MOCK.find((w) => w.name === selectedWorkspaceName) ?? CK_MOCK[0];
-  const currentSpace  = currentWs.spaces.find((s) => s.name === selectedSpaceName) ?? currentWs.spaces[0];
+  const currentSpace  = ckSpaces.find((s) => s.id === selectedSpaceId) ?? ckSpaces[0] ?? null;
   const hasFolders    = (currentSpace?.folders?.length ?? 0) > 0;
-  const currentFolder = hasFolders ? (currentSpace.folders.find((f) => f.name === selectedFolderName) ?? currentSpace.folders[0]) : null;
+  const currentFolder = hasFolders ? (currentSpace!.folders.find((f) => f.name === selectedFolderName) ?? currentSpace!.folders[0]) : null;
   const currentLists  = currentFolder ? currentFolder.lists : (currentSpace?.lists ?? []);
 
-  const onWorkspaceChange = (name: string) => {
-    const ws = CK_MOCK.find((w) => w.name === name) ?? CK_MOCK[0];
-    const s  = getDefaultState(ws);
-    setSelectedWorkspaceName(name);
-    setSelectedSpaceName(s.spaceName);
-    setSelectedFolderName(s.folderName);
-    setSelectedListName(s.listName);
-    updateCfg('listId', s.listId);
-  };
-
-  const onSpaceChange = (name: string) => {
-    const sp     = currentWs.spaces.find((s) => s.name === name) ?? currentWs.spaces[0];
+  const onSpaceChange = (id: string) => {
+    const sp     = ckSpaces.find((s) => s.id === id);
+    if (!sp) return;
     const folder = sp.folders[0] ?? null;
     const lists  = folder ? folder.lists : sp.lists;
-    setSelectedSpaceName(name);
+    setSelectedSpaceId(id);
     setSelectedFolderName(folder?.name ?? '');
     setSelectedListName(lists[0]?.name ?? '');
     updateCfg('listId', lists[0]?.id ?? '');
@@ -3436,19 +3390,21 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
                 );
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                    {/* Workspace */}
+                    {/* Workspace — static display (only one connected) */}
                     <div>
                       {lbl('Workspace')}
-                      <select value={selectedWorkspaceName} onChange={(e) => onWorkspaceChange(e.target.value)} style={selStyle}>
-                        {CK_MOCK.map((w) => <option key={w.name} value={w.name}>{w.name}</option>)}
-                      </select>
+                      <div style={{ ...selStyle, cursor: 'default', color: 'var(--ink-2)', background: 'var(--paper-2)' }}>{workspace}</div>
                     </div>
                     {/* Space */}
                     <div>
                       {lbl('Space')}
-                      <select value={selectedSpaceName} onChange={(e) => onSpaceChange(e.target.value)} style={selStyle}>
-                        {currentWs.spaces.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-                      </select>
+                      {ckLoading ? (
+                        <div style={{ ...selStyle, cursor: 'default', color: 'var(--ink-3)' }}>Carregando…</div>
+                      ) : (
+                        <select value={selectedSpaceId} onChange={(e) => onSpaceChange(e.target.value)} style={selStyle} disabled={!ckSpaces.length}>
+                          {ckSpaces.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      )}
                     </div>
                     {/* Folder (optional) */}
                     {hasFolders && (
@@ -3476,8 +3432,8 @@ function PreviewScreen({ demand, artifacts, analysis, workspaceId, publishConfig
                   Destino da publicação
                 </div>
                 {[
-                  { k: 'Workspace', v: selectedWorkspaceName },
-                  { k: 'Space',     v: selectedSpaceName },
+                  { k: 'Workspace', v: workspace },
+                  { k: 'Space',     v: currentSpace?.name ?? '' },
                   ...(hasFolders ? [{ k: 'Pasta', v: selectedFolderName }] : []),
                   { k: 'List',      v: selectedListName },
                 ].map((row, i, arr) => (
@@ -4447,6 +4403,7 @@ export default function DIPage() {
             demand={demand}
             artifacts={artifacts}
             analysis={analysis}
+            workspace={workspace}
             workspaceId={workspaceId}
             publishConfig={publishConfig}
             setPublishConfig={setPublishConfig}
