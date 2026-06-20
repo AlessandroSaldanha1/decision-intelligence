@@ -373,6 +373,7 @@ interface PreviewProps {
   demand: string;
   artifacts: ArtifactsData | null;
   analysis: AnalysisSection[] | null;
+  plan: PlanData | null;
   workspace: string;
   workspaceId: string;
   publishConfig: PublishConfig;
@@ -523,7 +524,7 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
           }}
         >
           O conhecimento da organização existe — mas está preso em ClickUp, Jira, Confluence, Notion,
-          reuniões e pessoas. A Decision Intelligence descobre e reaproveita essa inteligência para
+          reuniões e pessoas. A lore descobre e reaproveita essa inteligência para
           que nenhum time resolva, sozinho, o que a empresa já aprendeu.
         </p>
 
@@ -548,22 +549,6 @@ function DashboardScreen({ go, stats }: { go: (s: Screen) => void; stats: { spac
           >
             Iniciar nova demanda{' '}
             <span style={{ fontFamily: 'var(--mono)' }}>→</span>
-          </button>
-          <button
-            className="di-btn-ghost"
-            style={{
-              fontWeight: 600,
-              fontSize: 15,
-              padding: '13px 24px',
-              borderRadius: 8,
-              border: '1px solid var(--line-strong)',
-              background: 'transparent',
-              color: 'var(--ink)',
-              cursor: 'pointer',
-            }}
-            onClick={() => go('insights')}
-          >
-            Ver exemplo de inteligência
           </button>
         </div>
       </div>
@@ -1302,7 +1287,7 @@ function SearchingScreen({ demand, stats }: SearchingProps) {
     'Confluence + Notion · documentação',
     'Incidentes e post-mortems',
     'Construindo contexto semântico (RAG)',
-    'Passando para o Claude…',
+    'Passando para a IA…',
   ];
   return (
     <div
@@ -1987,7 +1972,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
           }}
           onClick={() => go('analysis')}
         >
-          Analisar contexto com Claude{' '}
+          Analisar com IA{' '}
           <span style={{ fontFamily: 'var(--mono)' }}>→</span>
         </button>
         <span
@@ -1997,7 +1982,7 @@ function InsightsScreen({ go, demand, insightsState, insights }: {
             color: 'var(--ink-3)',
           }}
         >
-          Claude lê todo o conhecimento acima antes de opinar
+          A IA lê todo o conhecimento acima antes de opinar
         </span>
       </div>
     </div>
@@ -2008,8 +1993,8 @@ function AnalysisScreen({ analysisState, analysis, analysisError, onRetryAnalysi
   const sections = analysis ?? [];
   const c = insights?.counts;
   const statsLine = c
-    ? `Claude cruzou a demanda com o conhecimento de ${c.projetos} projeto${c.projetos !== 1 ? 's' : ''}, ${c.incidentes} incidente${c.incidentes !== 1 ? 's' : ''} e ${c.regras} regra${c.regras !== 1 ? 's' : ''} organizacional${c.regras !== 1 ? 'is' : ''}.`
-    : 'Claude analisou a demanda com base no conhecimento organizacional disponível.';
+    ? `A IA cruzou a demanda com o conhecimento de ${c.projetos} projeto${c.projetos !== 1 ? 's' : ''}, ${c.incidentes} incidente${c.incidentes !== 1 ? 's' : ''} e ${c.regras} regra${c.regras !== 1 ? 's' : ''} organizacional${c.regras !== 1 ? 'is' : ''}.`
+    : 'A IA analisou a demanda com base no conhecimento organizacional disponível.';
   return (
     <div className="di-scrn" style={{ padding: '56px var(--pad-x) 80px', maxWidth: 1000 }}>
       {/* Header row */}
@@ -2352,7 +2337,7 @@ function ArtifactsScreen({ artifactsState, artifacts, artifactsError, onRetryArt
             {artifactsError ?? 'Ocorreu um erro inesperado. Verifique o console para mais detalhes.'}
           </p>
           <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>
-            Dica: verifique se a análise Claude foi concluída e se a demanda está preenchida.
+            Dica: verifique se a análise com IA foi concluída e se a demanda está preenchida.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
@@ -3096,7 +3081,7 @@ function PlanScreen({ go, planState, plan, planError, onRetryPlan }: { go: (s: S
   );
 }
 
-function PreviewScreen({ demand, artifacts, analysis, workspace, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
+function PreviewScreen({ demand, artifacts, analysis, plan, workspace, workspaceId, publishConfig, setPublishConfig, go, doPublish }: PreviewProps) {
   const updateCfg = (key: keyof PublishConfig, value: string | boolean) =>
     setPublishConfig((prev) => ({ ...prev, [key]: value }));
 
@@ -3163,13 +3148,12 @@ function PreviewScreen({ demand, artifacts, analysis, workspace, workspaceId, pu
   const connBg = connReal ? 'rgba(30,122,92,0.12)' : 'rgba(138,100,24,0.12)';
 
   const previewComment = analysis?.length
-    ? `Análise crítica gerada pelo Decision Intelligence.\n\nDemanda: ${demand}\n\n` +
+    ? `Análise crítica gerada pelo lore.\n\nDemanda: ${demand}\n\n` +
       analysis.map((s) => `${s.q}\n${s.a}`).filter((s) => !s.endsWith('\n')).join('\n\n')
-    : `Análise crítica gerada pelo Decision Intelligence.\n\nDemanda: ${demand}`;
+    : `Análise crítica gerada pelo lore.\n\nDemanda: ${demand}`;
 
-  const groups = ['Backend', 'Frontend', 'QA', 'Produto'];
-  const previewSubtasksFull: { group: string; name: string }[] = artifacts?.subtasks?.length
-    ? artifacts.subtasks.map((name, i) => ({ group: groups[i % groups.length], name }))
+  const previewSubtasksFull: { group: string; name: string }[] = plan?.groups?.length
+    ? plan.groups.flatMap((g) => g.items.map((name) => ({ group: g.frente, name })))
     : [];
 
   const previewSectionsFull = [
@@ -3804,19 +3788,19 @@ function ResultScreen({ publishState, publishStep, publishResult, publishError, 
   return null;
 }
 
-function Sidebar({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
-  const navMap: Partial<Record<Screen, Screen>> = { searching: 'insights', result: 'preview' };
-  const activeKey = navMap[screen] || screen;
+const STEP_DEFS = [
+  { label: 'Painel',                   key: 'dashboard', icon: 'space_dashboard' },
+  { label: 'Nova demanda',             key: 'demand',    icon: 'edit_note' },
+  { label: 'Conhecimento organizacional', key: 'insights', icon: 'hub' },
+  { label: 'Análise Assistente IA',    key: 'analysis',  icon: 'neurology' },
+  { label: 'Artefatos',                key: 'artifacts', icon: 'description' },
+  { label: 'Plano de entrega',         key: 'plan',      icon: 'checklist' },
+  { label: 'Publicar no ClickUp',      key: 'preview',   icon: 'rocket_launch' },
+] as const;
 
-  const sidebarStepDefs = [
-    { n: '01', label: 'Painel', key: 'dashboard' },
-    { n: '02', label: 'Nova demanda', key: 'demand' },
-    { n: '03', label: 'Conhecimento organizacional', key: 'insights' },
-    { n: '04', label: 'Análise Assistente IA', key: 'analysis' },
-    { n: '05', label: 'Artefatos', key: 'artifacts' },
-    { n: '06', label: 'Plano de entrega', key: 'plan' },
-    { n: '07', label: 'Publicar no ClickUp', key: 'preview' },
-  ];
+function Sidebar({ screen, go, maxReached, onReset }: { screen: Screen; go: (s: Screen) => void; maxReached: number; onReset: () => void }) {
+  const activeIndex = SCREEN_INDEX[screen] ?? 0;
+  const lastIdx = STEP_DEFS.length - 1;
 
   return (
     <aside
@@ -3831,153 +3815,221 @@ function Sidebar({ screen, go }: { screen: Screen; go: (s: Screen) => void }) {
         display: 'flex',
         flexDirection: 'column',
         overflowY: 'auto',
-        padding: '30px 24px 24px',
+        padding: '32px 24px 24px',
       }}
     >
       {/* Logo */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 6 }}>
-        <div
-          style={{
-            fontFamily: 'var(--serif)',
-            fontSize: 30,
-            letterSpacing: '-0.02em',
-            lineHeight: 1,
-            color: 'var(--ink)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 9,
-          }}
-        >
-          <span
-            style={{
-              width: 9,
-              height: 9,
-              borderRadius: '50%',
-              background: 'var(--clay)',
-              display: 'inline-block',
-              flexShrink: 0,
-            }}
-          />
-          Orla
-        </div>
-        <div
-          style={{
-            fontFamily: 'var(--mono)',
-            fontSize: 10.5,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--clay)',
-          }}
-        >
-          Decision Intelligence
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/orla-mark.png" alt="Orla" style={{ width: 34, height: 34, display: 'block', objectFit: 'contain' }} />
+        <span style={{
+          fontFamily: 'var(--mono)',
+          fontSize: 10.5,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--clay)',
+          textAlign: 'center',
+        }}>
+          lore
+        </span>
       </div>
 
       {/* Description */}
-      <p
-        style={{
-          fontSize: 12.5,
-          color: 'var(--ink-3)',
-          lineHeight: 1.5,
-          margin: '18px 2px 24px',
-          fontFamily: 'var(--mono)',
-          letterSpacing: '0.02em',
-        }}
-      >
-        Plataforma de Inteligência Organizacional
+      <p style={{
+        fontSize: 12.5,
+        color: 'var(--ink-3)',
+        lineHeight: 1.5,
+        margin: '18px 2px 24px',
+        fontFamily: 'var(--mono)',
+        letterSpacing: '0.02em',
+      }}>
+        Plataforma de Inteligência<br />Organizacional
       </p>
 
-      {/* Nav */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {sidebarStepDefs.map((step) => {
-          const isActive = activeKey === step.key;
+      {/* Nav trail */}
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+        {STEP_DEFS.map((step, i) => {
+          const locked = i > maxReached;
+          const isCurrent = i === activeIndex;
+          const isDone = !isCurrent && i < activeIndex;
+
+          let circleBg: string, circleBorder: string, circleGlow: string, iconColor: string;
+          if (isCurrent) {
+            circleBg = 'var(--clay)'; circleBorder = 'var(--clay)';
+            circleGlow = '0 0 0 4px rgba(36,75,107,0.16)'; iconColor = 'var(--paper)';
+          } else if (isDone) {
+            circleBg = 'var(--clay)'; circleBorder = 'var(--clay)';
+            circleGlow = 'none'; iconColor = 'var(--paper)';
+          } else if (!locked) {
+            circleBg = 'var(--paper)'; circleBorder = 'var(--clay)';
+            circleGlow = 'none'; iconColor = 'var(--clay)';
+          } else {
+            circleBg = 'var(--paper)'; circleBorder = 'var(--line-strong)';
+            circleGlow = 'none'; iconColor = 'var(--ink-3)';
+          }
+
+          const connColor = i <= maxReached ? 'var(--clay)' : 'var(--line-strong)';
+          const connPos = i === 0
+            ? { top: 15, bottom: -9 }
+            : i === lastIdx
+              ? { top: -9, bottom: 15 }
+              : { top: -9, bottom: -9 };
+
+          const labelColor = isCurrent ? 'var(--ink)' : locked ? 'var(--ink-3)' : 'var(--ink-2)';
+
           return (
             <button
               key={step.key}
-              onClick={() => go(step.key as Screen)}
+              onClick={() => { if (!locked) go(step.key as Screen); }}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '26px 1fr',
-                gap: 11,
+                gridTemplateColumns: '30px 1fr',
+                gap: 12,
                 alignItems: 'center',
-                padding: '11px 12px',
+                padding: '9px 10px',
                 borderRadius: 8,
-                cursor: 'pointer',
-                background: isActive ? 'var(--ink)' : 'transparent',
                 border: 'none',
+                background: 'transparent',
                 textAlign: 'left',
-                transition: 'background .15s',
+                position: 'relative',
+                cursor: locked ? 'not-allowed' : 'pointer',
+                opacity: locked ? 0.5 : 1,
+                transition: 'opacity .15s',
               }}
             >
-              <span
-                style={{
-                  fontFamily: 'var(--mono)',
-                  fontSize: 11,
-                  color: isActive ? 'var(--accent-ink)' : 'var(--ink-3)',
-                }}
-              >
-                {step.n}
+              {/* Circle + connector */}
+              <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: 30, height: 30 }}>
+                {/* Vertical connector line */}
+                <span style={{
+                  position: 'absolute',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 2,
+                  top: connPos.top,
+                  bottom: connPos.bottom,
+                  background: connColor,
+                  zIndex: 0,
+                }} />
+                {/* Circle icon */}
+                <span style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  boxSizing: 'border-box',
+                  position: 'relative',
+                  zIndex: 1,
+                  background: circleBg,
+                  border: `1.5px solid ${circleBorder}`,
+                  boxShadow: circleGlow,
+                  transition: 'all .2s var(--ease)',
+                }}>
+                  <span style={{
+                    fontFamily: "'Material Symbols Outlined'",
+                    fontSize: 17,
+                    lineHeight: 1,
+                    color: iconColor,
+                    userSelect: 'none',
+                    fontVariationSettings: "'FILL' 1, 'wght' 400",
+                  }}>
+                    {step.icon}
+                  </span>
+                </span>
               </span>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 500,
-                  lineHeight: 1.25,
-                  color: isActive ? 'var(--paper)' : 'var(--ink-2)',
-                }}
-              >
-                {step.label}
+
+              {/* Label + lock */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span style={{
+                  fontSize: 13.5,
+                  lineHeight: 1.2,
+                  color: labelColor,
+                  fontWeight: isCurrent ? 600 : 500,
+                }}>
+                  {step.label}
+                </span>
+                {locked && (
+                  <span style={{
+                    fontFamily: "'Material Symbols Outlined'",
+                    fontSize: 14,
+                    color: 'var(--ink-3)',
+                    marginLeft: 'auto',
+                    userSelect: 'none',
+                  }}>
+                    lock
+                  </span>
+                )}
               </span>
             </button>
           );
         })}
       </nav>
 
+      {/* Reset */}
+      {maxReached > 0 && (
+        <button
+          onClick={onReset}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 12,
+            padding: '7px 10px',
+            borderRadius: 6,
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            color: 'var(--ink-3)',
+            fontSize: 12.5,
+            fontFamily: 'var(--mono)',
+            letterSpacing: '0.03em',
+            transition: 'color .15s, background .15s',
+            width: '100%',
+            textAlign: 'left',
+          }}
+          className="di-nav-btn"
+        >
+          <span style={{ fontFamily: "'Material Symbols Outlined'", fontSize: 15, lineHeight: 1, userSelect: 'none' }}>
+            restart_alt
+          </span>
+          Reiniciar trilha
+        </button>
+      )}
+
       {/* Footer */}
-      <div
-        style={{
-          marginTop: 'auto',
-          paddingTop: 22,
-          borderTop: '1px solid var(--line)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
+      <div style={{
+        marginTop: 'auto',
+        paddingTop: 22,
+        borderTop: '1px solid var(--line)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: 'var(--sage)',
-              display: 'inline-block',
-              flexShrink: 0,
-              animation: 'di-pulse 2.4s infinite',
-            }}
-          />
-          <span
-            style={{
-              fontFamily: 'var(--mono)',
-              fontSize: 11,
-              color: 'var(--ink-2)',
-              letterSpacing: '0.04em',
-            }}
-          >
+          <span style={{
+            width: 7,
+            height: 7,
+            borderRadius: '50%',
+            background: 'var(--sage)',
+            display: 'inline-block',
+            flexShrink: 0,
+            animation: 'di-pulse 2.4s infinite',
+          }} />
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '0.04em' }}>
             Conhecimento vivo
           </span>
         </div>
-        <p
-          style={{
-            fontFamily: 'var(--mono)',
-            fontSize: 10.5,
-            letterSpacing: '0.03em',
-            color: 'var(--ink-3)',
-            lineHeight: 1.7,
-            margin: 0,
-          }}
-        >
-          92 projetos indexados / 48.000 comentários analisados / RAG · sincronizado há 2 min
+        <p style={{
+          fontFamily: 'var(--mono)',
+          fontSize: 10.5,
+          letterSpacing: '0.03em',
+          color: 'var(--ink-3)',
+          lineHeight: 1.7,
+          margin: 0,
+        }}>
+          92 projetos indexados<br />
+          48.000 comentários analisados<br />
+          RAG · sincronizado há 2 min
         </p>
       </div>
     </aside>
@@ -3992,22 +4044,24 @@ const globalCss = `
     --paper: #FFFFFF;
     --paper-2: #F2F4F7;
     --paper-3: #ECEEF1;
-    --ink: #1F2933;
+    --ink: #18222E;
     --ink-soft: #2B3A47;
-    --ink-2: #667085;
-    --ink-3: #7B8694;
+    --ink-2: #45505F;
+    --ink-3: #5A6573;
     --clay: #244B6B;
     --clay-deep: #1B3A53;
     --accent-ink: #2EC4B6;
     --sage: #1E7A5C;
     --ochre: #8A6418;
+    --danger: #B23535;
+    --danger-tint: #FBEAEA;
     --line: #D9DEE5;
     --line-soft: #E4E8ED;
     --line-strong: #C2C9D2;
     --line-on-ink: rgba(255,255,255,0.16);
     --on-ink-1: #FFFFFF;
-    --on-ink-2: #B5BEC9;
-    --on-ink-3: #98A2AE;
+    --on-ink-2: #C2CAD3;
+    --on-ink-3: #A6B0BC;
     --shadow-1: none;
     --shadow-2: none;
     --serif: "Kantumruy Pro", system-ui, sans-serif;
@@ -4061,6 +4115,7 @@ const globalCss = `
 
   .di-btn-primary:hover { opacity: .88; }
   .di-btn-ghost:hover { background: var(--paper-2); }
+  .di-nav-btn:hover { background: var(--paper-2); color: var(--ink-2); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -4086,9 +4141,22 @@ function getInitialPublishConfig(): PublishConfig {
   return DEFAULT_PUBLISH_CONFIG;
 }
 
+const SCREEN_INDEX: Partial<Record<Screen, number>> = {
+  dashboard: 0, demand: 1,
+  insights: 2, searching: 2,
+  analysis: 3, artifacts: 4, plan: 5,
+  preview: 6, result: 6,
+};
+
+function getInitialMaxReached(): number {
+  if (typeof window === 'undefined') return 0;
+  try { return Number(localStorage.getItem('di-max-reached') ?? 0); } catch { return 0; }
+}
+
 export default function DIPage() {
   const mainRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState<Screen>('dashboard');
+  const [maxReached, setMaxReached] = useState<number>(getInitialMaxReached);
   const [demand, setDemand] = useState('');
   const [workspace, setWorkspace] = useState('ANBIMA');
   const [workspaceId, setWorkspaceId] = useState('');
@@ -4256,6 +4324,12 @@ export default function DIPage() {
   const go = useCallback(
     (s: Screen) => {
       setScreen(s);
+      const idx = SCREEN_INDEX[s] ?? 0;
+      setMaxReached((prev) => {
+        const next = Math.max(prev, idx);
+        try { localStorage.setItem('di-max-reached', String(next)); } catch { /* ignore */ }
+        return next;
+      });
       if (mainRef.current) mainRef.current.scrollTop = 0;
       if (s === 'analysis' && analysisState === 'idle') runAnalysis();
       if (s === 'artifacts' && artifactsState === 'idle') runArtifacts();
@@ -4263,6 +4337,20 @@ export default function DIPage() {
     },
     [analysisState, artifactsState, planState, runAnalysis, runArtifacts, runPlan]
   );
+
+  const resetTrail = useCallback(() => {
+    setScreen('dashboard');
+    setMaxReached(0);
+    try { localStorage.removeItem('di-max-reached'); } catch { /* ignore */ }
+    setDemand('');
+    setKb({});
+    setAnalysisState('idle'); setAnalysis(null); setAnalysisError(null);
+    setArtifactsState('idle'); setArtifacts(null); setArtifactsError(null);
+    setInsightsState('idle'); setInsights(null);
+    setPlanState('idle'); setPlan(null); setPlanError(null);
+    setPublishState('idle'); setPublishStep(0); setPublishResult(null); setPublishError(null);
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, []);
 
   const runSearch = useCallback(() => {
     // Reset all generated states so a new demand always triggers fresh generation
@@ -4382,6 +4470,7 @@ export default function DIPage() {
             demand={demand}
             artifacts={artifacts}
             analysis={analysis}
+            plan={plan}
             workspace={workspace}
             workspaceId={workspaceId}
             publishConfig={publishConfig}
@@ -4419,7 +4508,7 @@ export default function DIPage() {
           fontFamily: 'var(--sans)',
         }}
       >
-        <Sidebar screen={screen} go={go} />
+        <Sidebar screen={screen} go={go} maxReached={maxReached} onReset={resetTrail} />
         <main
           ref={mainRef}
           style={{
